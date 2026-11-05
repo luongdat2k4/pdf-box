@@ -14,23 +14,20 @@ function go(to: string) {
 </script>
 
 <template>
-  <BottomSheet :open="open" title="Add & tools" @close="emit('close')">
-    <button class="mb-3 flex w-full items-center gap-3 rounded-2xl bg-primary px-4 py-3.5 text-left text-white active:bg-primary-dark" @click="emit('import')">
-      <Ic name="upload" /> <span class="text-sm font-semibold">Import files from device</span>
-    </button>
-    <div class="grid grid-cols-2 gap-2.5">
-      <button
-        v-for="t in TOOLS"
-        :key="t.to"
-        class="flex items-center gap-3 rounded-2xl bg-surface p-3 text-left active:bg-surface-strong"
-        @click="go(t.to)"
-      >
-        <span class="grid size-10 flex-none place-items-center rounded-xl" :class="t.color"><Ic :name="t.icon" /></span>
-        <span class="min-w-0">
-          <span class="block truncate text-sm font-semibold text-ink-strong">{{ t.label }}</span>
-          <span class="block truncate text-[11px] text-ink/55">{{ t.desc }}</span>
-        </span>
-      </button>
-    </div>
+  <BottomSheet :open="open" soft @close="emit('close')">
+    <ul class="flex flex-col gap-3.5 pt-3 pb-1">
+      <li>
+        <button class="relative flex h-14 w-full items-center rounded-2xl bg-primary pr-16 pl-5 text-left text-[16px] font-semibold text-white active:bg-primary-dark" @click="emit('import')">
+          Import files
+          <span class="absolute -top-2.5 right-3 grid size-[52px] place-items-center rounded-2xl bg-white text-primary shadow-md shadow-primary/25"><Ic name="upload" :size="26" /></span>
+        </button>
+      </li>
+      <li v-for="t in TOOLS" :key="t.to">
+        <button class="relative flex h-14 w-full items-center rounded-2xl bg-gradient-to-r from-surface-strong to-[#e4f0ff] pr-16 pl-5 text-left text-[16px] text-ink-strong active:brightness-95" @click="go(t.to)">
+          <span class="truncate">{{ t.label }}</span>
+          <span class="absolute -top-2.5 right-3 grid size-[52px] place-items-center rounded-2xl bg-white shadow-md shadow-primary/15" :class="t.color"><Ic :name="t.icon" :size="26" /></span>
+        </button>
+      </li>
+    </ul>
   </BottomSheet>
 </template>
