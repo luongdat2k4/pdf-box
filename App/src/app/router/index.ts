@@ -1,11 +1,15 @@
-import { createRouter, createWebHashHistory } from 'vue-router'
+import { createRouter, createWebHistory } from 'vue-router'
 
-// Hash history keeps deep links working inside the Capacitor WebView (no server rewrites).
+// Clean URLs (no /#/). Capacitor's local server and the Vite dev server fall back to index.html for unknown paths;
+// a static web host needs the same fallback (rewrite every path to /index.html).
 // Pages are loaded lazily: each is its own chunk, reached only through the page's public API.
 export const router = createRouter({
-  history: createWebHashHistory(),
+  history: createWebHistory(),
   routes: [
+    // Home tabs are routes of the same page (/, /history, /favorites); the type chip is the `?type=` query.
     { path: '/', name: 'home', component: () => import('@/pages/home').then((m) => m.HomePage) },
+    { path: '/history', name: 'history', component: () => import('@/pages/home').then((m) => m.HomePage) },
+    { path: '/favorites', name: 'favorites', component: () => import('@/pages/home').then((m) => m.HomePage) },
     { path: '/search', name: 'search', component: () => import('@/pages/search').then((m) => m.SearchPage) },
     { path: '/reader/:id', name: 'reader', component: () => import('@/pages/reader').then((m) => m.ReaderPage), props: true },
     { path: '/office/:id', name: 'office', component: () => import('@/pages/office-viewer').then((m) => m.OfficeViewerPage), props: true },

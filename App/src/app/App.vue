@@ -13,7 +13,8 @@ onMounted(() => {
   if (isNative()) {
     // Android back button: go back in history, exit at the root.
     void CapApp.addListener('backButton', () => {
-      if (window.history.length > 1 && router.currentRoute.value.name !== 'home') router.back()
+      const root = ['home', 'history', 'favorites'].includes(String(router.currentRoute.value.name))
+      if (window.history.length > 1 && !root) router.back()
       else void CapApp.exitApp()
     })
   }

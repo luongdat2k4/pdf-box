@@ -38,7 +38,7 @@ onMounted(async () => {
   }
 })
 
-/** In-document links (#section) scroll inside the page; the router also lives in the URL hash, so never let them navigate. */
+/** In-document links (#section) scroll inside the page; never let them navigate (they would change the URL). */
 function onArticleClick(e: MouseEvent) {
   const a = (e.target as Element).closest('a')
   const href = a?.getAttribute('href')

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { Ic, toast } from '@/shared/ui'
 import { errorMessage } from '@/shared/lib/error'
 import { useDragScroll } from '@/shared/lib/use-drag-scroll'
@@ -10,11 +10,19 @@ import { ToolsSheet } from '@/widgets/tools-sheet'
 import { FileMenu } from '@/widgets/file-menu'
 
 const router = useRouter()
+const route = useRoute()
 const lib = useLibrary()
 
 type Tab = 'home' | 'history' | 'favorites'
-const tab = ref<Tab>('home')
-const filter = ref<'all' | FileKind>('all')
+// Tab and type filter live in the URL: /, /history, /favorites and ?type=pdf|word|...
+const tab = computed<Tab>(() => (route.name === 'history' || route.name === 'favorites' ? route.name : 'home'))
+const filter = computed<'all' | FileKind>(() => {
+  const t = String(route.query.type ?? '')
+  return chips.some((c) => c.id === t && t !== 'all') ? (t as FileKind) : 'all'
+})
+function go(t: Tab, type: 'all' | FileKind) {
+  void router.replace({ name: t, query: type === 'all' ? {} : { type } })
+}
 const toolsOpen = ref(false)
 const menuFile = ref<FileMeta | null>(null)
 const picker = ref<HTMLInputElement | null>(null)
@@ -35,7 +43,7 @@ const chips: { id: 'all' | FileKind; label: string }[] = [
 ]
 
 function selectChip(id: 'all' | FileKind, e: MouseEvent) {
-  filter.value = id
+  go(tab.value, id)
   // Keep the chosen chip visible when it sits at the edge of the scroller.
   ;(e.currentTarget as HTMLElement).scrollIntoView({ inline: 'center', block: 'nearest', behavior: 'smooth' })
 }
@@ -92,7 +100,7 @@ async function onPicked(e: Event) {
           :aria-selected="tab === t.id"
           class="relative flex-1 pb-2.5 pt-1 text-center transition"
           :class="tab === t.id ? 'text-[18px] font-semibold text-white' : 'text-[14px] text-white/60'"
-          @click="tab = t.id"
+          @click="go(t.id, filter)"
         >
           {{ t.label }}
           <span v-if="tab === t.id" class="absolute inset-x-1/3 bottom-0 h-[3px] rounded-full bg-primary" />
