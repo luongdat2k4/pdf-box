@@ -5,7 +5,7 @@ import { kindOf, type FileKind, type FileMeta } from './types'
 
 const MIME: Record<FileKind, string> = {
   pdf: 'application/pdf', word: 'application/msword', excel: 'application/vnd.ms-excel',
-  ppt: 'application/vnd.ms-powerpoint', txt: 'text/plain', image: 'image/*',
+  ppt: 'application/vnd.ms-powerpoint', txt: 'text/plain', md: 'text/markdown', image: 'image/*',
 }
 
 export const useLibrary = defineStore('library', () => {

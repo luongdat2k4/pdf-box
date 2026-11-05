@@ -1,4 +1,4 @@
-export type FileKind = 'pdf' | 'word' | 'excel' | 'ppt' | 'txt' | 'image'
+export type FileKind = 'pdf' | 'word' | 'excel' | 'ppt' | 'txt' | 'md' | 'image'
 
 export interface FileMeta {
   id: string
@@ -17,6 +17,7 @@ export const EXT_KIND: Record<string, FileKind> = {
   xls: 'excel', xlsx: 'excel', xlt: 'excel', xltx: 'excel', xltm: 'excel', xlsm: 'excel',
   ppt: 'ppt', pptx: 'ppt', pot: 'ppt', pptm: 'ppt', potx: 'ppt', potm: 'ppt',
   txt: 'txt',
+  md: 'md', markdown: 'md',
   jpg: 'image', jpeg: 'image', png: 'image', gif: 'image', bmp: 'image', webp: 'image',
 }
 

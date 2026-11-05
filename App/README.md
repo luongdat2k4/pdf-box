@@ -29,8 +29,8 @@ Android: cần JDK 17+ và Android Studio. Thư mục `android/` đã được t
 | Khóa / Mở khóa PDF | `@cantoo/pdf-lib` `encrypt()` AES-128, mật khẩu user = owner; mở khóa tạo bản sao không mật khẩu |
 | Ảnh → PDF (A3, A4, A5, A6, B4, B5) | `embedJpg/embedPng`, vừa khít trang và căn giữa |
 | PDF → Ảnh (từng trang hoặc một ảnh dài, 3 mức chất lượng) | pdf.js render ra canvas, xuất JPEG |
-| Xem Word (.docx), Excel, TXT | `mammoth`, SheetJS, đều qua DOMPurify |
-| Word/Excel/TXT → PDF | `html2canvas` cắt thành trang A4 (**PDF chỉ chứa ảnh, không chọn/tìm được chữ**) |
+| Xem Word (.docx), Excel, TXT, Markdown (`.md`, `.markdown`; có tab Preview/Source) | `mammoth`, SheetJS, `marked` (GFM), đều qua DOMPurify |
+| Word/Excel/TXT/Markdown → PDF | `html2canvas` cắt thành trang A4 (**PDF chỉ chứa ảnh, không chọn/tìm được chữ**) |
 | Scan bằng camera → PDF | `@capacitor/camera` (web: `<input capture>`), chế độ "Document" (xám + kéo giãn tương phản) |
 | Lưu / chia sẻ file | `@capacitor/filesystem` (Documents/PDFToolbox), `@capacitor/share`; web: tải xuống / Web Share |
 

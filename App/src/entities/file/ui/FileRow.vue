@@ -21,6 +21,7 @@ const icon = computed<{ name: IconName; cls: string }>(() => {
     case 'word': return { name: 'doc', cls: 'bg-blue-50 text-blue-600' }
     case 'excel': return { name: 'excel', cls: 'bg-green-50 text-green-600' }
     case 'ppt': return { name: 'ppt', cls: 'bg-orange-50 text-orange-500' }
+    case 'md': return { name: 'code', cls: 'bg-slate-100 text-slate-600' }
     case 'image': return { name: 'fileImage', cls: 'bg-purple-50 text-purple-500' }
     default: return { name: 'file', cls: 'bg-surface text-ink/60' }
   }

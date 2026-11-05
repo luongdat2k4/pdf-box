@@ -12,7 +12,7 @@ const lib = useLibrary()
 
 type Tab = 'home' | 'history' | 'favorites'
 const tab = ref<Tab>('home')
-const filter = ref<'all' | 'pdf' | 'office' | 'txt' | 'image'>('all')
+const filter = ref<'all' | FileKind>('all')
 const toolsOpen = ref(false)
 const menuFile = ref<FileMeta | null>(null)
 const picker = ref<HTMLInputElement | null>(null)
@@ -22,28 +22,26 @@ const tabs: { id: Tab; label: string }[] = [
   { id: 'history', label: 'History' },
   { id: 'favorites', label: 'Favorites' },
 ]
-const chips = [
-  { id: 'all', label: 'All' }, { id: 'pdf', label: 'PDF' }, { id: 'office', label: 'Office' },
-  { id: 'txt', label: 'TXT' }, { id: 'image', label: 'Images' },
-] as const
-const officeKinds: FileKind[] = ['word', 'excel', 'ppt']
+const chips: { id: 'all' | FileKind; label: string }[] = [
+  { id: 'all', label: 'All' }, { id: 'pdf', label: 'PDF' }, { id: 'word', label: 'Word' },
+  { id: 'excel', label: 'Excel' }, { id: 'ppt', label: 'PPT' }, { id: 'txt', label: 'TXT' },
+  { id: 'md', label: 'MD' }, { id: 'image', label: 'Images' },
+]
 
 const list = computed(() => {
   const src = tab.value === 'home' ? lib.all : tab.value === 'history' ? lib.recent : lib.favorites
-  switch (filter.value) {
-    case 'pdf': return src.filter((f) => f.kind === 'pdf')
-    case 'office': return src.filter((f) => officeKinds.includes(f.kind))
-    case 'txt': return src.filter((f) => f.kind === 'txt')
-    case 'image': return src.filter((f) => f.kind === 'image')
-    default: return src
-  }
+  return filter.value === 'all' ? src : src.filter((f) => f.kind === filter.value)
 })
 
-const emptyText = computed(() =>
-  tab.value === 'history' ? 'Files you open will show up here.'
-  : tab.value === 'favorites' ? 'Tap the star on a file to keep it here.'
-  : 'Your library is empty. Import PDF, Office, TXT or image files to get started.',
-)
+const emptyText = computed(() => {
+  if (filter.value !== 'all') {
+    const label = chips.find((c) => c.id === filter.value)?.label
+    return `Nothing in “${label}” yet.`
+  }
+  return tab.value === 'history' ? 'Files you open will show up here.'
+    : tab.value === 'favorites' ? 'Tap the star on a file to keep it here.'
+    : 'Your library is empty. Import PDF, Word, Excel, PPT, TXT, Markdown or image files to get started.'
+})
 
 async function open(f: FileMeta) {
   if (f.kind === 'image') return void router.push(`/office/${f.id}`)
@@ -90,7 +88,7 @@ async function onPicked(e: Event) {
       </nav>
     </header>
 
-    <div class="flex flex-none gap-2 overflow-x-auto bg-surface px-3 py-2.5">
+    <div class="flex flex-none gap-2 overflow-x-auto bg-surface px-3 py-2.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
       <button
         v-for="c in chips"
         :key="c.id"
@@ -107,7 +105,7 @@ async function onPicked(e: Event) {
         <div>
           <Ic name="files" :size="56" class="mx-auto text-surface-strong" />
           <p class="mt-3 text-sm text-ink/55">{{ emptyText }}</p>
-          <button v-if="tab === 'home' && !lib.items.length" class="mt-4 rounded-full bg-primary px-6 py-2.5 text-sm font-semibold text-white" @click="picker?.click()">
+          <button v-if="tab === 'home' && !lib.items.length && filter === 'all'" class="mt-4 rounded-full bg-primary px-6 py-2.5 text-sm font-semibold text-white" @click="picker?.click()">
             Import files
           </button>
         </div>

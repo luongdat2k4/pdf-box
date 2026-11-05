@@ -9,6 +9,7 @@ import download from '@iconify-icons/lucide/download'
 import ellipsisVertical from '@iconify-icons/lucide/ellipsis-vertical'
 import camera from '@iconify-icons/lucide/camera'
 import file from '@iconify-icons/lucide/file'
+import fileCode from '@iconify-icons/lucide/file-code'
 import fileImage from '@iconify-icons/lucide/file-image'
 import fileSpreadsheet from '@iconify-icons/lucide/file-spreadsheet'
 import fileText from '@iconify-icons/lucide/file-text'
@@ -47,7 +48,7 @@ import zoomOut from '@iconify-icons/lucide/zoom-out'
 
 export const icons = {
   back: arrowLeft, up: arrowUp, down: arrowDown, check, next: chevronRight, ok: circleCheck,
-  download, more: ellipsisVertical, camera, file, fileImage, excel: fileSpreadsheet, doc: fileText,
+  download, more: ellipsisVertical, camera, file, code: fileCode, fileImage, excel: fileSpreadsheet, doc: fileText,
   files: filesIcon, highlight: highlighter, history, home: house, image, images, info, loading: loader,
   lock, unlock: lockOpen, merge, thumbs: panelLeft, rename: pencil, pen: penLine, plus, ppt: presentation,
   redo, save, scan: scanLine, split: scissors, search, share, star, strike, trash, warn: triangleAlert,

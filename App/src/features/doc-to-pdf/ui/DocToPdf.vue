@@ -12,7 +12,7 @@ const ids = ref<string[]>([])
 const html = ref('')
 const stage = ref<HTMLElement | null>(null)
 const files = computed(() => lib.documents.filter((f) => f.kind !== 'ppt'))
-const accept = '.doc,.docx,.dot,.dotx,.dotm,.xls,.xlsx,.xlt,.xltx,.xltm,.xlsm,.txt'
+const accept = '.doc,.docx,.dot,.dotx,.dotm,.xls,.xlsx,.xlt,.xltx,.xltm,.xlsm,.txt,.md,.markdown'
 
 function convert() {
   const f = ids.value[0] ? lib.find(ids.value[0]) : undefined
@@ -32,8 +32,8 @@ function convert() {
 
 <template>
   <div class="flex h-full flex-col bg-white">
-    <ToolBar title="Doc to PDF" subtitle="Word (.docx), Excel, TXT" />
-    <FileSelect v-model="ids" :files="files" :accept="accept" empty-text="No Word, Excel or TXT files yet. Use Import to add some." />
+    <ToolBar title="Doc to PDF" subtitle="Word (.docx), Excel, TXT, Markdown" />
+    <FileSelect v-model="ids" :files="files" :accept="accept" empty-text="No Word, Excel, TXT or Markdown files yet. Use Import to add some." />
     <p class="flex-none px-4 pb-1 text-center text-xs text-ink/50">The PDF is built from page images, so its text can't be selected or searched.</p>
     <BottomAction :label="busy ? progress || 'Converting…' : 'Convert to PDF'" :busy="busy" :disabled="!ids.length" @click="convert" />
     <!-- off-screen render target for html2canvas -->
