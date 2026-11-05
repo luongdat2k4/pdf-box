@@ -16,6 +16,7 @@ import fileText from '@iconify-icons/lucide/file-text'
 import filesIcon from '@iconify-icons/lucide/files'
 import highlighter from '@iconify-icons/lucide/highlighter'
 import history from '@iconify-icons/lucide/history'
+import layoutGrid from '@iconify-icons/lucide/layout-grid'
 import house from '@iconify-icons/lucide/house'
 import image from '@iconify-icons/lucide/image'
 import images from '@iconify-icons/lucide/images'
@@ -49,7 +50,7 @@ import zoomOut from '@iconify-icons/lucide/zoom-out'
 export const icons = {
   back: arrowLeft, up: arrowUp, down: arrowDown, check, next: chevronRight, ok: circleCheck,
   download, more: ellipsisVertical, camera, file, code: fileCode, fileImage, excel: fileSpreadsheet, doc: fileText,
-  files: filesIcon, highlight: highlighter, history, home: house, image, images, info, loading: loader,
+  files: filesIcon, highlight: highlighter, history, home: house, tools: layoutGrid, image, images, info, loading: loader,
   lock, unlock: lockOpen, merge, thumbs: panelLeft, rename: pencil, pen: penLine, plus, ppt: presentation,
   redo, save, scan: scanLine, split: scissors, search, share, star, strike, trash, warn: triangleAlert,
   underline, undo, upload, close: x, zoomIn, zoomOut,

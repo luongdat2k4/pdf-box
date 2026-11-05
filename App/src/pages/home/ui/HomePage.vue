@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router'
 import { Ic, toast } from '@/shared/ui'
 import { errorMessage } from '@/shared/lib/error'
 import { useDragScroll } from '@/shared/lib/use-drag-scroll'
+import { useDragFab } from '@/shared/lib/use-drag-fab'
 import { ACCEPT_ALL, FileRow, openRoute, useLibrary, type FileKind, type FileMeta } from '@/entities/file'
 import { ToolsSheet } from '@/widgets/tools-sheet'
 import { FileMenu } from '@/widgets/file-menu'
@@ -19,6 +20,8 @@ const menuFile = ref<FileMeta | null>(null)
 const picker = ref<HTMLInputElement | null>(null)
 const chipsEl = ref<HTMLElement | null>(null)
 useDragScroll(chipsEl)
+const fabEl = ref<HTMLElement | null>(null)
+const fab = useDragFab(fabEl, 'pdftoolbox.fabOffset')
 
 const tabs: { id: Tab; label: string }[] = [
   { id: 'home', label: 'Home' },
@@ -123,11 +126,13 @@ async function onPicked(e: Event) {
     </main>
 
     <button
-      class="safe-bottom fixed right-5 bottom-5 grid size-14 place-items-center rounded-full bg-primary text-white shadow-lg shadow-primary/40 active:bg-primary-dark"
-      aria-label="Tools"
+      ref="fabEl"
+      class="safe-bottom fixed right-5 bottom-5 grid size-14 touch-none place-items-center rounded-full bg-primary text-white shadow-lg shadow-primary/40 select-none active:bg-primary-dark"
+      :style="fab.style.value"
+      aria-label="Open tools"
       @click="toolsOpen = true"
     >
-      <Ic name="plus" :size="28" />
+      <Ic name="tools" :size="26" />
     </button>
     <input ref="picker" type="file" class="hidden" multiple :accept="ACCEPT_ALL" @change="onPicked" />
 
