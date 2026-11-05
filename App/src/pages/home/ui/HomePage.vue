@@ -135,7 +135,7 @@ async function onPicked(e: Event) {
 
     <button
       ref="fabEl"
-      class="safe-bottom fixed right-5 bottom-5 grid size-14 touch-none place-items-center rounded-full bg-primary text-white shadow-lg shadow-primary/40 select-none active:bg-primary-dark"
+      class="fixed right-5 bottom-[calc(1.25rem+env(safe-area-inset-bottom,0px))] grid size-14 touch-none place-items-center rounded-full bg-primary text-white shadow-lg shadow-primary/40 select-none active:bg-primary-dark"
       :style="fab.style.value"
       aria-label="Open tools"
       @click="toolsOpen = true"
