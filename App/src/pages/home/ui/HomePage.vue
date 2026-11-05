@@ -3,6 +3,7 @@ import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { Ic, toast } from '@/shared/ui'
 import { errorMessage } from '@/shared/lib/error'
+import { useDragScroll } from '@/shared/lib/use-drag-scroll'
 import { ACCEPT_ALL, FileRow, openRoute, useLibrary, type FileKind, type FileMeta } from '@/entities/file'
 import { ToolsSheet } from '@/widgets/tools-sheet'
 import { FileMenu } from '@/widgets/file-menu'
@@ -16,6 +17,8 @@ const filter = ref<'all' | FileKind>('all')
 const toolsOpen = ref(false)
 const menuFile = ref<FileMeta | null>(null)
 const picker = ref<HTMLInputElement | null>(null)
+const chipsEl = ref<HTMLElement | null>(null)
+useDragScroll(chipsEl)
 
 const tabs: { id: Tab; label: string }[] = [
   { id: 'home', label: 'Home' },
@@ -27,6 +30,12 @@ const chips: { id: 'all' | FileKind; label: string }[] = [
   { id: 'excel', label: 'Excel' }, { id: 'ppt', label: 'PPT' }, { id: 'txt', label: 'TXT' },
   { id: 'md', label: 'MD' }, { id: 'image', label: 'Images' },
 ]
+
+function selectChip(id: 'all' | FileKind, e: MouseEvent) {
+  filter.value = id
+  // Keep the chosen chip visible when it sits at the edge of the scroller.
+  ;(e.currentTarget as HTMLElement).scrollIntoView({ inline: 'center', block: 'nearest', behavior: 'smooth' })
+}
 
 const list = computed(() => {
   const src = tab.value === 'home' ? lib.all : tab.value === 'history' ? lib.recent : lib.favorites
@@ -88,13 +97,13 @@ async function onPicked(e: Event) {
       </nav>
     </header>
 
-    <div class="flex flex-none gap-2 overflow-x-auto bg-surface px-3 py-2.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+    <div ref="chipsEl" class="flex flex-none cursor-grab gap-2 overflow-x-auto bg-surface px-3 py-2.5 select-none active:cursor-grabbing [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
       <button
         v-for="c in chips"
         :key="c.id"
         class="flex-none rounded-full px-4 py-1.5 text-[13px] font-medium"
         :class="filter === c.id ? 'bg-primary text-white' : 'bg-white text-ink/70'"
-        @click="filter = c.id"
+        @click="selectChip(c.id, $event)"
       >
         {{ c.label }}
       </button>
