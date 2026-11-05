@@ -36,10 +36,12 @@ const tabs: { id: Tab; label: string }[] = [
   { id: 'history', label: 'History' },
   { id: 'favorites', label: 'Favorites' },
 ]
-const chips: { id: 'all' | FileKind; label: string }[] = [
-  { id: 'all', label: 'All' }, { id: 'pdf', label: 'PDF' }, { id: 'word', label: 'Word' },
-  { id: 'excel', label: 'Excel' }, { id: 'ppt', label: 'PPT' }, { id: 'txt', label: 'TXT' },
-  { id: 'md', label: 'MD' }, { id: 'image', label: 'Images' },
+const base = import.meta.env.BASE_URL
+// `icon` = file name in public/assets/icons/<icon>.webp
+const chips: { id: 'all' | FileKind; label: string; icon: string }[] = [
+  { id: 'all', label: 'All', icon: 'all' }, { id: 'pdf', label: 'PDF', icon: 'pdf' }, { id: 'word', label: 'Word', icon: 'word' },
+  { id: 'excel', label: 'Excel', icon: 'excel' }, { id: 'ppt', label: 'PPT', icon: 'ppt' }, { id: 'txt', label: 'TXT', icon: 'txt' },
+  { id: 'md', label: 'MD', icon: 'md' }, { id: 'image', label: 'Images', icon: 'image' },
 ]
 
 function selectChip(id: 'all' | FileKind, e: MouseEvent) {
@@ -108,15 +110,21 @@ async function onPicked(e: Event) {
       </nav>
     </header>
 
-    <div ref="chipsEl" class="flex flex-none cursor-grab gap-2 overflow-x-auto bg-surface px-3 py-2.5 select-none active:cursor-grabbing [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+    <div ref="chipsEl" class="flex flex-none cursor-grab gap-1 overflow-x-auto bg-surface px-2 py-2 select-none active:cursor-grabbing [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
       <button
         v-for="c in chips"
         :key="c.id"
-        class="flex-none rounded-full px-4 py-1.5 text-[13px] font-medium"
-        :class="filter === c.id ? 'bg-primary text-white' : 'bg-white text-ink/70'"
+        class="group flex w-[68px] flex-none flex-col items-center gap-1 rounded-2xl py-1"
+        :aria-pressed="filter === c.id"
         @click="selectChip(c.id, $event)"
       >
-        {{ c.label }}
+        <span
+          class="grid size-12 place-items-center rounded-full transition"
+          :class="filter === c.id ? 'bg-primary/15 ring-2 ring-primary/40' : 'bg-white'"
+        >
+          <img :src="`${base}assets/icons/${c.icon}.webp`" :alt="''" class="size-8 object-contain" draggable="false" />
+        </span>
+        <span class="text-[12px] leading-none" :class="filter === c.id ? 'font-semibold text-primary' : 'text-ink/65'">{{ c.label }}</span>
       </button>
     </div>
 
