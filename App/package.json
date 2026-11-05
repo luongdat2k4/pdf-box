@@ -1,0 +1,46 @@
+{
+  "name": "pdf-toolbox",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "PDF reader & toolbox (Vue 3 + TypeScript + Capacitor + Tailwind CSS)",
+  "scripts": {
+    "dev": "vite",
+    "build": "vue-tsc --noEmit && vite build",
+    "typecheck": "vue-tsc --noEmit",
+    "preview": "vite preview",
+    "cap:sync": "npm run build && cap sync",
+    "cap:android": "npm run cap:sync && cap open android"
+  },
+  "dependencies": {
+    "@cantoo/pdf-lib": "^2.11.1",
+    "@capacitor/app": "^8.1.2",
+    "@capacitor/camera": "^8.2.6",
+    "@capacitor/core": "^8.6.0",
+    "@capacitor/filesystem": "^8.1.5",
+    "@capacitor/share": "^8.0.3",
+    "@fontsource-variable/inter": "^5.3.0",
+    "@iconify-icons/lucide": "^2.0.27",
+    "@iconify/vue": "^5.0.5",
+    "dompurify": "^3.4.17",
+    "html2canvas": "^1.4.1",
+    "idb-keyval": "^6.3.0",
+    "mammoth": "^1.13.0",
+    "pdfjs-dist": "^6.5.438",
+    "pinia": "^4.1.0",
+    "vue": "^3.5.45",
+    "vue-router": "^5.4.0",
+    "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz"
+  },
+  "devDependencies": {
+    "@capacitor/android": "^8.6.0",
+    "@capacitor/cli": "^8.6.0",
+    "@tailwindcss/vite": "^4.3.4",
+    "@types/node": "^26.6.6",
+    "@vitejs/plugin-vue": "^6.0.10",
+    "tailwindcss": "^4.3.4",
+    "typescript": "^5.9.3",
+    "vite": "^8.3.6",
+    "vue-tsc": "^3.3.14"
+  }
+}
