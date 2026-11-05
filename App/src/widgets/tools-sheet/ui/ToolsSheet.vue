@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import { useRouter } from 'vue-router'
-import { BottomSheet, Ic } from '@/shared/ui'
+import { BottomSheet } from '@/shared/ui'
 import { TOOLS } from '../model/tools'
 
 defineProps<{ open: boolean }>()
 const emit = defineEmits<{ close: []; import: [] }>()
 const router = useRouter()
+const icon = (name: string) => `${import.meta.env.BASE_URL}assets/icons/tool-${name}.webp`
 
 function go(to: string) {
   emit('close')
@@ -19,13 +20,13 @@ function go(to: string) {
       <li>
         <button class="relative flex h-14 w-full items-center rounded-2xl bg-primary pr-16 pl-5 text-left text-[16px] font-semibold text-white active:bg-primary-dark" @click="emit('import')">
           Import files
-          <span class="absolute -top-2.5 right-3 grid size-[52px] place-items-center rounded-2xl bg-white text-primary shadow-md shadow-primary/25"><Ic name="upload" :size="26" /></span>
+          <span class="absolute -top-2.5 right-3 grid size-[52px] place-items-center rounded-2xl bg-white shadow-md shadow-primary/25"><img :src="icon('import')" alt="" class="size-9 object-contain" draggable="false" /></span>
         </button>
       </li>
       <li v-for="t in TOOLS" :key="t.to">
         <button class="relative flex h-14 w-full items-center rounded-2xl bg-gradient-to-r from-surface-strong to-[#e4f0ff] pr-16 pl-5 text-left text-[16px] text-ink-strong active:brightness-95" @click="go(t.to)">
           <span class="truncate">{{ t.label }}</span>
-          <span class="absolute -top-2.5 right-3 grid size-[52px] place-items-center rounded-2xl bg-white shadow-md shadow-primary/15" :class="t.color"><Ic :name="t.icon" :size="26" /></span>
+          <span class="absolute -top-2.5 right-3 grid size-[52px] place-items-center rounded-2xl bg-white shadow-md shadow-primary/15"><img :src="icon(t.icon)" alt="" class="size-9 object-contain" draggable="false" /></span>
         </button>
       </li>
     </ul>
