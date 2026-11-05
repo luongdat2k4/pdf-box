@@ -45,12 +45,32 @@ Android: cần JDK 17+ và Android Studio. Thư mục `android/` đã được t
 - File lưu trong IndexedDB của WebView; xóa dữ liệu app là mất thư viện (hãy dùng Save to device để xuất ra).
 - Mới kiểm thử trên trình duyệt (khung 375×812); **chưa chạy trên thiết bị/emulator Android thật**.
 
-## Cấu trúc
+## Cấu trúc (Feature-Sliced Design)
+
+`src/` chia theo lớp, mỗi lớp chỉ được import từ lớp **bên dưới**: `app → pages → widgets → features → entities → shared`.
+Các slice trong cùng một lớp không import nhau; muốn dùng slice khác phải qua public API (`index.ts`).
 
 ```
 src/
-  lib/        pdfOps, pdfjs, render, office, db, platform, dialogs…  (logic không phụ thuộc UI)
-  stores/     library (Pinia)
-  components/ FileRow, FileSelect, PdfPage, PageThumb, BottomSheet, DialogHost…
-  views/      Home, Search, Reader, Office và các màn công cụ
+  app/        khởi tạo: main.ts, App.vue, router/, styles/ (Tailwind), env.d.ts
+  pages/      mỗi route một page mỏng ghép các lớp dưới
+                home, search, reader, office-viewer,
+                merge-pdf, split-pdf, lock-pdf, image-to-pdf, pdf-to-image, doc-to-pdf, scan-document, delete-files
+  widgets/    khối UI lớn, tự đủ
+                tools-sheet (bảng công cụ ở nút +), file-menu (menu thao tác file + chi tiết)
+  features/   một hành động của người dùng = ui/ + model/
+                merge-pdf, split-pdf, lock-pdf, image-to-pdf, pdf-to-image, doc-to-pdf, scan-document, delete-files,
+                pdf-search (tìm chữ), pdf-annotate (chú thích, undo/redo, lưu)
+  entities/   khái niệm nghiệp vụ
+                file    (FileMeta, kho thư viện Pinia, IndexedDB, FileRow/FileSelect/ResultSheet, useFileActions, useRunner)
+                pdf     (pdf.js, pdf-lib ops, render, PdfPage, PageThumb, mở file có mật khẩu)
+                office  (Word/Excel/TXT -> HTML đã làm sạch)
+  shared/     không biết gì về nghiệp vụ
+                ui (Ic, ToolBar, BottomSheet, BottomAction, DialogHost + dialogs), lib (format, platform, error), config (icons)
+```
+
+Mỗi slice có các segment `ui/` (component), `model/` (state, composable, kiểu), `api/` (I/O), `lib/` (hàm thuần).
+
+```bash
+npm run lint:fsd   # kiểm tra quy tắc import giữa các lớp/slice (cũng chạy trong npm run build)
 ```
