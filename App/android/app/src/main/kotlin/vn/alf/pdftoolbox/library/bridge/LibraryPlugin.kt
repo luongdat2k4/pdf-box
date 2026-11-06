@@ -55,6 +55,8 @@ class LibraryPlugin : Plugin() {
         val services = LibraryServices.get(context)
         repo = services.repository
         sessions = services.writeSessions
+        // A cold start through "Open with" carries the file in the launch intent.
+        activity?.intent?.let { handleViewIntent(it) }
         // Housekeeping must never delay or break startup.
         scope.launch {
             try {
@@ -65,6 +67,40 @@ class LibraryPlugin : Plugin() {
             } catch (e: Exception) {
                 Log.w(TAG, "Cleanup failed", e)
             }
+        }
+    }
+
+    /** A warm start (app already running) through "Open with". */
+    override fun handleOnNewIntent(intent: Intent) {
+        super.handleOnNewIntent(intent)
+        handleViewIntent(intent)
+    }
+
+    /**
+     * Imports the file another app asked us to open and tells the WebView with a `documentOpened` event.
+     * The event is retained until the WebView registers its listener, so a cold start is not lost. The file is
+     * linked when the sender granted a lasting permission, otherwise copied (see [LibraryRepository.importPicked]).
+     */
+    private fun handleViewIntent(intent: Intent) {
+        val uri = intent.data
+        if (intent.action != Intent.ACTION_VIEW || uri == null) return
+        if (intent.flags and Intent.FLAG_ACTIVITY_LAUNCHED_FROM_HISTORY != 0) return
+        // Consume it so recreating the activity does not import the same file again.
+        activity?.intent = Intent(Intent.ACTION_MAIN)
+        val flags = intent.flags
+        scope.launch {
+            val event = JSObject()
+            try {
+                val imported = repo.importPicked(listOf(PickedUri(uri, flags)), ExtensionFilter(emptyList()), ImportMode.LINK)
+                imported.added.firstOrNull()?.let { event.put("document", it.toJson()) }
+                event.put("skipped", JSArray().also { array -> imported.skipped.forEach { array.put(it) } })
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Log.w(TAG, "Could not open $uri", e)
+                event.put("error", (e as? LibraryException)?.message ?: "Could not open this file")
+            }
+            notifyListeners("documentOpened", event, true)
         }
     }
 

@@ -104,6 +104,8 @@ onMounted(async () => {
     doc.value = opened.doc
     source.value = opened.source
     pageCount.value = opened.doc.numPages
+    if (f.lastZoom) zoom.value = Math.min(3, Math.max(1, f.lastZoom))
+    void lib.saveProgress(f.id, { pageCount: opened.doc.numPages, isEncrypted: opened.source.password !== undefined })
     await lib.touch(f.id)
     loading.value = false
     await nextTick()
@@ -122,10 +124,18 @@ onMounted(async () => {
       page.cleanup()
       if (p === 1 || p % 25 === 0 || p === opened.doc.numPages) ratios.value = [...out]
     }
+    // The scroll height is only right once every page size is known, so restore the position now.
+    // Skipped if the user already moved on.
+    await nextTick()
+    if (current.value === 1 && f.lastPage > 1 && f.lastPage <= opened.doc.numPages) goTo(f.lastPage)
   } catch (e) { error.value = errorMessage(e); loading.value = false }
 })
 
-onBeforeUnmount(() => { ro?.disconnect(); search.close(); void destroyDoc(doc.value) })
+function rememberPosition() {
+  if (doc.value && file.value) void lib.saveProgress(file.value.id, { lastPage: current.value, lastZoom: zoom.value })
+}
+
+onBeforeUnmount(() => { rememberPosition(); ro?.disconnect(); search.close(); void destroyDoc(doc.value) })
 
 function menuAction(fn: (f: NonNullable<typeof file.value>) => unknown) {
   menuOpen.value = false

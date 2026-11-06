@@ -2,8 +2,9 @@
 import { computed, ref } from 'vue'
 import FileRow from './FileRow.vue'
 import { Ic, toast } from '@/shared/ui'
+import { errorMessage } from '@/shared/lib/error'
 import { useLibrary } from '../model/store'
-import type { FileMeta } from '../model/types'
+import { acceptExts, type FileMeta } from '../model/types'
 
 /**
  * Library file picker shared by the tool screens: lists matching files, lets the user tick
@@ -21,7 +22,6 @@ const props = defineProps<{
 const emit = defineEmits<{ 'update:modelValue': [ids: string[]] }>()
 
 const lib = useLibrary()
-const picker = ref<HTMLInputElement | null>(null)
 const query = ref('')
 
 const shown = computed(() => {
@@ -35,12 +35,15 @@ function toggle(id: string) {
   emit('update:modelValue', cur.includes(id) ? cur.filter((x) => x !== id) : [...cur, id])
 }
 
-async function onPicked(e: Event) {
-  const input = e.target as HTMLInputElement
-  const files = [...(input.files ?? [])]
-  input.value = ''
-  if (!files.length) return
-  const { added, skipped } = await lib.importFiles(files)
+async function pick() {
+  let res
+  try {
+    res = await lib.importFromDevice({ accept: acceptExts(props.accept), multiple: props.multiple })
+  } catch (e) {
+    return void toast(errorMessage(e), true)
+  }
+  const { added, skipped } = res
+  if (!added.length && !skipped.length) return
   if (skipped.length) toast(`Skipped unsupported: ${skipped.join(', ')}`, true)
   const wanted = added.filter(matches)
   if (added.length > wanted.length) toast('Some imported files are not usable here, but were added to your library.')
@@ -63,10 +66,9 @@ function matches(f: FileMeta) {
         <input v-model="query" class="min-w-0 flex-1 bg-transparent text-sm outline-none" placeholder="Search files" />
       </div>
       <button class="flex h-10 items-center gap-1.5 rounded-full bg-primary px-4 text-sm font-medium text-white active:opacity-80"
-        @click="picker?.click()">
+        @click="pick">
         <Ic name="upload" :size="18" /> Import
       </button>
-      <input ref="picker" type="file" class="hidden" :accept="accept" :multiple="multiple" @change="onPicked" />
     </div>
 
     <div class="min-h-0 flex-1 overflow-y-auto px-2 pb-3">

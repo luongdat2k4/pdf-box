@@ -9,6 +9,11 @@ export interface FileMeta {
   addedAt: number
   openedAt: number | null
   favorite: boolean
+  /** Reading position, restored when the file is reopened (PDF only). */
+  lastPage: number
+  lastZoom: number | null
+  pageCount: number | null
+  isEncrypted: boolean
 }
 
 export const EXT_KIND: Record<string, FileKind> = {
@@ -24,6 +29,12 @@ export const EXT_KIND: Record<string, FileKind> = {
 export const ACCEPT_ALL = Object.keys(EXT_KIND).map((e) => `.${e}`).join(',')
 export const ACCEPT_PDF = '.pdf,application/pdf'
 export const ACCEPT_IMAGE = 'image/*,.jpg,.jpeg,.png,.gif,.bmp,.webp'
+
+/** Turns an `<input accept>` string into the bare extension list the native picker wants. */
+export function acceptExts(accept: string): string[] {
+  const exts = accept.split(',').map((s) => s.trim().toLowerCase()).filter((s) => s.startsWith('.')).map((s) => s.slice(1))
+  return exts.length ? exts : Object.keys(EXT_KIND)
+}
 
 export function kindOf(name: string): FileKind | null {
   const ext = name.split('.').pop()?.toLowerCase() ?? ''

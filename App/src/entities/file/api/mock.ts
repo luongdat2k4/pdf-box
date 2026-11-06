@@ -11,8 +11,8 @@ import type { DocumentRecord, NativeApi, Settings } from './native-api'
 function toRecord(m: FileMeta): DocumentRecord {
   return {
     id: m.id, storage: 'app', location: `idb:${m.id}`, displayName: m.name, mimeType: m.mime,
-    sizeBytes: m.size, pageCount: null, isEncrypted: false, isFavorite: m.favorite,
-    lastPage: 0, lastZoom: null, lastOpenedAt: m.openedAt, addedAt: m.addedAt,
+    sizeBytes: m.size, pageCount: m.pageCount ?? null, isEncrypted: m.isEncrypted ?? false, isFavorite: m.favorite,
+    lastPage: m.lastPage ?? 0, lastZoom: m.lastZoom ?? null, lastOpenedAt: m.openedAt, addedAt: m.addedAt,
   }
 }
 
@@ -59,6 +59,7 @@ async function store(name: string, mimeType: string, data: Blob): Promise<Docume
   const meta: FileMeta = {
     id: crypto.randomUUID(), name, kind, size: data.size, mime: mimeType || data.type || 'application/octet-stream',
     addedAt: Date.now(), openedAt: null, favorite: false,
+    lastPage: 0, lastZoom: null, pageCount: null, isEncrypted: false,
   }
   await db.putFile(meta, data)
   return toRecord(meta)
@@ -75,6 +76,10 @@ export const mockApi: NativeApi = {
     if (patch.isFavorite !== undefined) m.favorite = patch.isFavorite
     if (patch.lastOpenedAt !== undefined) m.openedAt = patch.lastOpenedAt
     if (patch.sizeBytes != null) m.size = patch.sizeBytes
+    if (patch.lastPage !== undefined) m.lastPage = patch.lastPage
+    if (patch.lastZoom !== undefined) m.lastZoom = patch.lastZoom
+    if (patch.pageCount !== undefined) m.pageCount = patch.pageCount
+    if (patch.isEncrypted !== undefined) m.isEncrypted = patch.isEncrypted
     await db.putMeta(m)
     return toRecord(m)
   },
@@ -130,6 +135,9 @@ export const mockApi: NativeApi = {
       throw Object.assign(new Error('Only "app" is available in the browser'), { code: 'INVALID_ARGUMENT' })
     }
     return { ...settings }
+  },
+  async onDocumentOpened() {
+    return () => {} // nothing opens files from outside the browser tab
   },
   async pickSaveFolder() {
     throw Object.assign(new Error('Choosing a folder needs the Android app'), { code: 'INVALID_ARGUMENT' })

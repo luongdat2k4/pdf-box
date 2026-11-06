@@ -1,5 +1,6 @@
-import { registerPlugin } from '@capacitor/core'
-import type { DocumentPatch, DocumentRecord, NativeApi, Settings } from './native-api'
+import { registerPlugin, type PluginListenerHandle } from '@capacitor/core'
+import { askConfirm } from '@/shared/ui'
+import type { DocumentPatch, DocumentRecord, NativeApi, OpenedEvent, Settings } from './native-api'
 
 /** Raw commands of the Kotlin `Library` plugin (design-note/native-api.md, "Lệnh của plugin"). */
 interface LibraryPlugin {
@@ -22,6 +23,7 @@ interface LibraryPlugin {
   getSettings(): Promise<Settings>
   setSettings(o: Partial<Settings>): Promise<Settings>
   pickSaveFolder(): Promise<Settings>
+  addListener(event: 'documentOpened', cb: (e: OpenedEvent) => void): Promise<PluginListenerHandle>
 }
 
 const Library = registerPlugin<LibraryPlugin>('Library')
@@ -63,6 +65,28 @@ function blobToBase64(blob: Blob): Promise<string> {
   })
 }
 
+const WHY: Record<string, string> = {
+  CANCELLED: 'You did not choose where to save the file.',
+  PERMISSION_LOST: 'Access to your save folder was lost.',
+  NO_WRITE_PERMISSION: 'The save folder is not writable.',
+}
+
+/**
+ * Commits a write session. When the chosen save location cannot be used (picker cancelled, folder gone) the native
+ * side keeps the session, so we offer to keep the result inside the app rather than losing the work.
+ */
+async function commitOrFallback(token: string, commit: { name?: string; mimeType?: string; id?: string }) {
+  try {
+    return await Library.writeCommit({ token, ...commit })
+  } catch (e) {
+    const code = (e as { code?: string })?.code ?? ''
+    if (commit.id || !(code in WHY)) return rethrow(e)
+    const ok = await askConfirm('Save inside the app?', `${WHY[code]} Keep this file in the app's own storage instead?`, 'Save in app')
+    if (!ok) return rethrow(e)
+    return await call(Library.writeCommit({ token, ...commit, fallbackToApp: true }))
+  }
+}
+
 /** Streams a blob into a write session, then commits it with the given arguments. */
 async function writeBlob(data: Blob, commit: { name?: string; mimeType?: string; id?: string }): Promise<DocumentRecord> {
   const { token } = await call(Library.writeBegin())
@@ -70,7 +94,7 @@ async function writeBlob(data: Blob, commit: { name?: string; mimeType?: string;
     for (let off = 0; off < data.size; off += CHUNK) {
       await call(Library.writeChunk({ token, data: await blobToBase64(data.slice(off, off + CHUNK)) }))
     }
-    return (await call(Library.writeCommit({ token, ...commit }))).document
+    return (await commitOrFallback(token, commit)).document
   } catch (e) {
     await Library.writeAbort({ token }).catch(() => {})
     throw e
@@ -110,4 +134,9 @@ export const nativeApi: NativeApi = {
   getSettings: () => call(Library.getSettings()),
   setSettings: (patch) => call(Library.setSettings(patch)),
   pickSaveFolder: () => call(Library.pickSaveFolder()),
+
+  async onDocumentOpened(cb) {
+    const handle = await Library.addListener('documentOpened', cb)
+    return () => void handle.remove()
+  },
 }

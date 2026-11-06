@@ -15,6 +15,7 @@ function toMeta(r: DocumentRecord): FileMeta | null {
   return {
     id: r.id, name: r.displayName, kind, size: r.sizeBytes ?? 0, mime: r.mimeType,
     addedAt: r.addedAt, openedAt: r.lastOpenedAt, favorite: r.isFavorite,
+    lastPage: r.lastPage, lastZoom: r.lastZoom, pageCount: r.pageCount, isEncrypted: r.isEncrypted,
   }
 }
 
@@ -60,13 +61,23 @@ export const useLibrary = defineStore('library', () => {
     return meta
   }
 
-  /** Native picker (device) or file dialog (browser). `link` keeps the original file in place instead of copying. */
+  /**
+   * Native picker (device) or file dialog (browser). `link` keeps the original file in place instead of copying;
+   * native falls back to a copy when the file's provider will not hand out a lasting permission.
+   * A cancelled picker resolves with nothing added.
+   */
   async function importFromDevice(opts: { accept?: string[]; multiple?: boolean; mode?: 'copy' | 'link' } = {}) {
-    const res = await api.importFromDevice({
-      accept: opts.accept ?? Object.keys(EXT_KIND).map((e) => `.${e}`),
-      multiple: opts.multiple ?? true,
-      mode: opts.mode ?? 'copy',
-    })
+    let res: Awaited<ReturnType<typeof api.importFromDevice>>
+    try {
+      res = await api.importFromDevice({
+        accept: opts.accept ?? Object.keys(EXT_KIND),
+        multiple: opts.multiple ?? true,
+        mode: opts.mode ?? 'link',
+      })
+    } catch (e) {
+      if ((e as Error).name === 'AbortError') return { added: [] as FileMeta[], skipped: [] as string[] }
+      throw e
+    }
     const added = toMetas(res.added)
     items.value.unshift(...added)
     return { added, skipped: res.skipped }
@@ -110,6 +121,25 @@ export const useLibrary = defineStore('library', () => {
     apply(await api.updateDocument(id, { displayName }))
   }
 
+  /** Takes in a record the native side created on its own (a file opened from another app). */
+  function adopt(r: DocumentRecord): FileMeta | null {
+    const meta = toMeta(r)
+    if (!meta) return null
+    const existing = find(meta.id)
+    if (existing) { Object.assign(existing, meta); return existing }
+    items.value.unshift(meta)
+    return meta
+  }
+
+  /** Remembers where the user stopped reading and what the PDF turned out to be. Failures are not worth surfacing. */
+  async function saveProgress(
+    id: string,
+    p: { lastPage?: number; lastZoom?: number | null; pageCount?: number; isEncrypted?: boolean },
+  ) {
+    if (!find(id)) return
+    try { apply(await api.updateDocument(id, p)) } catch { /* progress is best effort */ }
+  }
+
   /** Overwrite the stored bytes of an existing file (used when saving annotations). */
   async function replaceBlob(id: string, blob: Blob) {
     if (!find(id)) return
@@ -124,5 +154,6 @@ export const useLibrary = defineStore('library', () => {
   return {
     items, loaded, all, recent, favorites, pdfs, images, documents,
     load, find, addBlob, importFiles, importFromDevice, blobOf, bytesOf, touch, toggleFavorite, rename, replaceBlob, remove,
+    saveProgress, adopt,
   }
 })

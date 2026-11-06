@@ -35,6 +35,7 @@ import save from '@iconify-icons/lucide/save'
 import scanLine from '@iconify-icons/lucide/scan-line'
 import scissors from '@iconify-icons/lucide/scissors'
 import search from '@iconify-icons/lucide/search'
+import settings from '@iconify-icons/lucide/settings'
 import share from '@iconify-icons/lucide/share-2'
 import star from '@iconify-icons/lucide/star'
 import strike from '@iconify-icons/lucide/strikethrough'
@@ -48,6 +49,7 @@ import zoomIn from '@iconify-icons/lucide/zoom-in'
 import zoomOut from '@iconify-icons/lucide/zoom-out'
 
 export const icons = {
+  settings,
   back: arrowLeft, up: arrowUp, down: arrowDown, check, next: chevronRight, ok: circleCheck,
   download, more: ellipsisVertical, camera, file, code: fileCode, fileImage, excel: fileSpreadsheet, doc: fileText,
   files: filesIcon, highlight: highlighter, history, home: house, tools: layoutGrid, image, images, info, loading: loader,

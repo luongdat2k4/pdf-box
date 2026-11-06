@@ -5,7 +5,7 @@ import { Ic, toast } from '@/shared/ui'
 import { errorMessage } from '@/shared/lib/error'
 import { useDragScroll } from '@/shared/lib/use-drag-scroll'
 import { useDragFab } from '@/shared/lib/use-drag-fab'
-import { ACCEPT_ALL, FileRow, openRoute, useLibrary, type FileKind, type FileMeta } from '@/entities/file'
+import { FileRow, openRoute, useLibrary, type FileKind, type FileMeta } from '@/entities/file'
 import { ToolsSheet } from '@/widgets/tools-sheet'
 import { FileMenu } from '@/widgets/file-menu'
 
@@ -25,7 +25,6 @@ function go(t: Tab, type: 'all' | FileKind) {
 }
 const toolsOpen = ref(false)
 const menuFile = ref<FileMeta | null>(null)
-const picker = ref<HTMLInputElement | null>(null)
 const chipsEl = ref<HTMLElement | null>(null)
 useDragScroll(chipsEl)
 const fabEl = ref<HTMLElement | null>(null)
@@ -71,14 +70,10 @@ async function open(f: FileMeta) {
   void router.push(openRoute(f))
 }
 
-async function onPicked(e: Event) {
-  const input = e.target as HTMLInputElement
-  const files = [...(input.files ?? [])]
-  input.value = ''
+async function pick() {
   toolsOpen.value = false
-  if (!files.length) return
   try {
-    const { added, skipped } = await lib.importFiles(files)
+    const { added, skipped } = await lib.importFromDevice()
     if (added.length) toast(`Imported ${added.length} file${added.length > 1 ? 's' : ''}`)
     if (skipped.length) toast(`Unsupported: ${skipped.join(', ')}`, true)
   } catch (err) { toast(errorMessage(err), true) }
@@ -90,6 +85,9 @@ async function onPicked(e: Event) {
     <header class="safe-top flex-none bg-header text-white">
       <div class="flex h-14 items-center gap-2 px-4">
         <h1 class="flex-1 text-lg font-bold tracking-tight">PDF Toolbox</h1>
+        <button class="grid size-10 place-items-center rounded-full active:bg-white/15" aria-label="Settings" @click="router.push('/settings')">
+          <Ic name="settings" />
+        </button>
         <button class="grid size-10 place-items-center rounded-full active:bg-white/15" aria-label="Search files" @click="router.push('/search')">
           <Ic name="search" />
         </button>
@@ -133,7 +131,7 @@ async function onPicked(e: Event) {
         <div>
           <Ic name="files" :size="56" class="mx-auto text-surface-strong" />
           <p class="mt-3 text-sm text-ink/55">{{ emptyText }}</p>
-          <button v-if="tab === 'home' && !lib.items.length && filter === 'all'" class="mt-4 rounded-full bg-primary px-6 py-2.5 text-sm font-semibold text-white" @click="picker?.click()">
+          <button v-if="tab === 'home' && !lib.items.length && filter === 'all'" class="mt-4 rounded-full bg-primary px-6 py-2.5 text-sm font-semibold text-white" @click="pick()">
             Import files
           </button>
         </div>
@@ -150,9 +148,8 @@ async function onPicked(e: Event) {
     >
       <Ic name="tools" :size="26" />
     </button>
-    <input ref="picker" type="file" class="hidden" multiple :accept="ACCEPT_ALL" @change="onPicked" />
 
-    <ToolsSheet :open="toolsOpen" @close="toolsOpen = false" @import="picker?.click()" />
+    <ToolsSheet :open="toolsOpen" @close="toolsOpen = false" @import="pick()" />
     <FileMenu :file="menuFile" @close="menuFile = null" @open="open" />
   </div>
 </template>

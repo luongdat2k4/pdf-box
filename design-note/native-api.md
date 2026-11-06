@@ -140,6 +140,7 @@ Ghi chú:
 | `getSettings` | — | `{ saveMode, saveFolderUri }` | `getSettings` |
 | `setSettings` | `{ saveMode?, saveFolderUri? }` | như trên | `setSettings` |
 | `pickSaveFolder` | — | như trên | **mới**, xem dưới |
+| sự kiện `documentOpened` | — | `{ document?, skipped, error? }` | **mới**: file do app khác mở bằng "Open with"; native đã nhập sẵn (link nếu được cấp quyền lâu dài, nếu không thì copy). Sự kiện được giữ lại cho tới khi WebView đăng ký nghe, nên lần mở đầu tiên khi app chưa chạy không bị mất |
 
 Quy ước:
 

@@ -31,6 +31,13 @@ export interface Settings {
   saveFolderUri: string | null
 }
 
+/** A file another app asked us to open ("Open with"), already imported by the native side. */
+export interface OpenedEvent {
+  document?: DocumentRecord
+  skipped: string[]
+  error?: string
+}
+
 export interface NativeApi {
   listDocuments(): Promise<DocumentRecord[]>
   updateDocument(id: string, patch: DocumentPatch): Promise<DocumentRecord>
@@ -53,6 +60,9 @@ export interface NativeApi {
   getSettings(): Promise<Settings>
   setSettings(patch: Partial<Settings>): Promise<Settings>
   pickSaveFolder(): Promise<Settings>
+
+  /** Called for each "Open with" request, including one that launched the app. Returns an unsubscribe function. */
+  onDocumentOpened(cb: (e: OpenedEvent) => void): Promise<() => void>
 }
 
 /** The real Android plugin on a device, an IndexedDB stand-in in the browser (dev only). */
