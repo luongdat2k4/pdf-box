@@ -23,7 +23,7 @@ Chỉ đọc nội dung và `display_name`. Không ghi cột nào.
 
 ## Thay đổi cần làm
 
-1. **Native lo cả hai việc**: `exportDocument(id)` và `shareDocument(id)`. Native đọc thẳng file từ kho và dùng FileProvider để chia sẻ, **không còn vòng WebView → base64 → Cache**. Đây là cải thiện lớn nhất của chức năng này. Cần kiểm tra cấu hình `App/android/app/src/main/res/xml/file_paths.xml` cho phép những thư mục cần chia sẻ.
+1. **Native lo cả hai việc**: `exportDocument(id)` và `shareDocument(id)`. Native tự đọc file từ kho, **không còn vòng WebView → base64 → Cache**. Đây là cải thiện lớn nhất của chức năng này. Với file `app`, native sao chép sang bộ nhớ đệm **dưới đúng tên hiển thị** (tên lưu trên đĩa là UUID, người nhận sẽ thấy nhầm) rồi chia sẻ qua FileProvider; cấu hình sẵn `cache-path` trong `App/android/app/src/main/res/xml/file_paths.xml` đã đủ. Đã cài đặt ở phía native, WebView chưa gọi. Xuất ra ngoài: Android 10 trở lên ghi vào `Documents/PDFToolbox` qua MediaStore, Android 9 trở xuống để người dùng chọn nơi lưu.
 2. **Với `external`:** chia sẻ trực tiếp bằng URI; xuất ra ngoài vẫn sao chép sang `Documents/PDFToolbox` nếu người dùng muốn một bản độc lập.
 3. Đặt tên rõ nghĩa: **"Xuất ra ngoài"** (hoặc "Lưu ra thiết bị") và hiện nơi đã lưu, để người dùng hiểu đây là cách giữ bản sao ngoài vùng riêng của app.
 4. **Nhắc ở lần đầu** (và trong hộp Details, xem [01](01-library.md)): file `app` mất khi gỡ app hoặc xóa dữ liệu. Có thể thêm nút "Xuất tất cả".

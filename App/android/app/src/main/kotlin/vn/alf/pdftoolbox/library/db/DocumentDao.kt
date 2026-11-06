@@ -1,0 +1,37 @@
+package vn.alf.pdftoolbox.library.db
+
+import androidx.room.Dao
+import androidx.room.Insert
+import androidx.room.Query
+import androidx.room.Update
+import vn.alf.pdftoolbox.library.model.DocumentEntity
+import vn.alf.pdftoolbox.library.model.Storage
+
+@Dao
+interface DocumentDao {
+    /** Newest first, matching how the WebView's Home tab sorts. */
+    @Query("SELECT * FROM document ORDER BY added_at DESC")
+    suspend fun getAll(): List<DocumentEntity>
+
+    @Query("SELECT * FROM document WHERE id = :id")
+    suspend fun get(id: String): DocumentEntity?
+
+    @Query("SELECT * FROM document WHERE id IN (:ids)")
+    suspend fun getByIds(ids: List<String>): List<DocumentEntity>
+
+    @Query("SELECT * FROM document WHERE storage = :storage AND location = :location")
+    suspend fun find(storage: Storage, location: String): DocumentEntity?
+
+    /** Locations of files kept in the app's private storage; anything else in that folder is an orphan. */
+    @Query("SELECT location FROM document WHERE storage = 'app'")
+    suspend fun appLocations(): List<String>
+
+    @Insert
+    suspend fun insert(entity: DocumentEntity)
+
+    @Update
+    suspend fun update(entity: DocumentEntity)
+
+    @Query("DELETE FROM document WHERE id IN (:ids)")
+    suspend fun deleteByIds(ids: List<String>): Int
+}

@@ -177,6 +177,11 @@ Ghi chú:
 - Trạng thái đọc gộp vào `document` vì mỗi file chỉ có một bộ giá trị.
 - `page_count`, `is_encrypted` **không tính lúc nhập** để nhập nhiều file không bị chậm; WebView điền qua `updateDocument` khi mở lần đầu.
 - Kiểu `INTEGER` 0/1 cho cờ ở SQL; phía hợp đồng trả về `boolean`.
+- **Khác biệt giữa SQL trên và bảng Room thực tế** (Room sinh DDL từ lớp Kotlin, không chép được nguyên văn):
+  - `CHECK (storage IN ('app','external'))` **không có** trong bảng; ràng buộc được thực thi ở mã: `Storage` là `enum` và bộ chuyển đổi (`Converters`) ném lỗi nếu gặp giá trị lạ khi đọc.
+  - `UNIQUE (storage, location)` là chỉ mục duy nhất tên `idx_doc_storage_location`, tương đương về hiệu lực.
+  - `idx_doc_recent` được tạo với thứ tự giảm dần (`DESC`).
+  - Schema mà Room xuất ra nằm ở `App/android/app/schemas/` và **nên được commit** để kiểm tra migration.
 - Dữ liệu cũ trong IndexedDB: xem [`native-api.md`](native-api.md) mục 8.
 
 ## 5. Chú thích: ghi thẳng vào PDF

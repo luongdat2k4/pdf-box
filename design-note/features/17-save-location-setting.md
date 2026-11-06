@@ -33,7 +33,7 @@ Cài đặt **không** nằm trong bảng `document`:
 ## Thay đổi cần làm
 
 1. **Một chỗ quyết định duy nhất ở native:** `saveOutput` đọc `save_mode` và tự chọn nơi lưu; WebView không tự xử lý từng chế độ. Nhờ vậy `savePdf` và `pdf-to-image` đều tự đúng mà không phải sửa từng công cụ.
-2. **Màn Cài đặt** (route mới): chọn `save_mode`; với `folder` thì mở hộp chọn thư mục của hệ thống và gọi `takePersistableUriPermission`. Hiển thị thư mục đang dùng.
+2. **Màn Cài đặt** (route mới): chọn `save_mode`; với `folder` thì gọi lệnh `pickSaveFolder` ([`native-api.md`](../native-api.md)): native mở hộp chọn thư mục, giữ quyền và tự chuyển sang chế độ `folder`. `setSettings` **không** nhận được một URI thư mục tự đặt từ JavaScript. Hiển thị thư mục đang dùng.
 3. Chế độ `folder` chỉ cần **một quyền cho cả cây thư mục**, không tốn hạn mức URI cho từng file ([`schema.md`](../schema.md) mục 3).
 4. **Khi mất quyền thư mục** (người dùng thu hồi, thư mục bị xóa): `saveOutput` trả `PERMISSION_LOST`; giao diện đề nghị chọn lại thư mục hoặc **lưu tạm vào `app`**, không làm mất kết quả vừa tạo.
 5. Với `ask`: người dùng hủy hộp chọn trả `CANCELLED`; kết quả đang xử lý cần có lựa chọn "lưu vào app" để không mất công.

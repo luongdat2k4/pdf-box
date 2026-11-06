@@ -1,7 +1,11 @@
 // Top-level build file where you can add configuration options common to all sub-projects/modules.
 
 buildscript {
-    
+    // Kotlin is already used by @capacitor/camera and @capacitor/filesystem (they default to 2.2.20 and read
+    // rootProject.ext.kotlin_version). Pin it here so the whole build loads one Kotlin Gradle plugin.
+    ext.kotlin_version = '2.2.20'
+    ext.ksp_version = '2.2.20-2.0.4' // KSP version must start with the Kotlin version
+
     repositories {
         google()
         mavenCentral()
@@ -9,6 +13,8 @@ buildscript {
     dependencies {
         classpath 'com.android.tools.build:gradle:8.13.0'
         classpath 'com.google.gms:google-services:4.4.4'
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
+        classpath "com.google.devtools.ksp:symbol-processing-gradle-plugin:$ksp_version"
 
         // NOTE: Do not place your application dependencies here; they belong
         // in the individual module build.gradle files

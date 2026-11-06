@@ -1,4 +1,6 @@
 apply plugin: 'com.android.application'
+apply plugin: 'kotlin-android'
+apply plugin: 'com.google.devtools.ksp'
 
 android {
     namespace = "vn.alf.pdftoolbox"
@@ -24,6 +26,16 @@ android {
     }
 }
 
+// Kotlin and Java compile at the same level as capacitor.build.gradle (Java 21).
+kotlin {
+    jvmToolchain(21)
+}
+
+// Export Room's schema JSON so migrations can be verified (commit app/schemas/).
+ksp {
+    arg("room.schemaLocation", "$projectDir/schemas")
+}
+
 repositories {
     flatDir{
         dirs '../capacitor-cordova-android-plugins/src/main/libs', 'libs'
@@ -36,6 +48,15 @@ dependencies {
     implementation "androidx.coordinatorlayout:coordinatorlayout:$androidxCoordinatorLayoutVersion"
     implementation "androidx.core:core-splashscreen:$coreSplashScreenVersion"
     implementation project(':capacitor-android')
+    implementation "androidx.activity:activity:$androidxActivityVersion" // ActivityResult, used by the Library plugin
+
+    // Library layer: SQLite (Room), settings (DataStore), coroutines
+    implementation "androidx.room:room-runtime:$roomVersion"
+    implementation "androidx.room:room-ktx:$roomVersion"
+    ksp "androidx.room:room-compiler:$roomVersion"
+    implementation "androidx.datastore:datastore-preferences:$datastoreVersion"
+    implementation "org.jetbrains.kotlinx:kotlinx-coroutines-android:$coroutinesVersion"
+
     testImplementation "junit:junit:$junitVersion"
     androidTestImplementation "androidx.test.ext:junit:$androidxJunitVersion"
     androidTestImplementation "androidx.test.espresso:espresso-core:$androidxEspressoCoreVersion"
