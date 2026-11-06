@@ -1,11 +1,25 @@
 import { computed, ref } from 'vue'
 import { defineStore } from 'pinia'
-import * as db from '../api/db'
-import { kindOf, type FileKind, type FileMeta } from './types'
+import { api, type DocumentRecord } from '../api/native-api'
+import { EXT_KIND, kindOf, type FileKind, type FileMeta } from './types'
 
 const MIME: Record<FileKind, string> = {
   pdf: 'application/pdf', word: 'application/msword', excel: 'application/vnd.ms-excel',
   ppt: 'application/vnd.ms-powerpoint', txt: 'text/plain', md: 'text/markdown', image: 'image/*',
+}
+
+/** Rows whose name has no supported type cannot be shown, so they map to null. */
+function toMeta(r: DocumentRecord): FileMeta | null {
+  const kind = kindOf(r.displayName)
+  if (!kind) return null
+  return {
+    id: r.id, name: r.displayName, kind, size: r.sizeBytes ?? 0, mime: r.mimeType,
+    addedAt: r.addedAt, openedAt: r.lastOpenedAt, favorite: r.isFavorite,
+  }
+}
+
+function toMetas(rs: DocumentRecord[]): FileMeta[] {
+  return rs.map(toMeta).filter((m): m is FileMeta => m !== null)
 }
 
 export const useLibrary = defineStore('library', () => {
@@ -13,8 +27,15 @@ export const useLibrary = defineStore('library', () => {
   const loaded = ref(false)
 
   async function load() {
-    items.value = (await db.listMeta()).sort((a, b) => b.addedAt - a.addedAt)
+    items.value = toMetas(await api.listDocuments()).sort((a, b) => b.addedAt - a.addedAt)
     loaded.value = true
+  }
+
+  /** Applies a record returned by the native side to the list item it describes. */
+  function apply(r: DocumentRecord) {
+    const next = toMeta(r)
+    const m = find(r.id)
+    if (next && m) Object.assign(m, next)
   }
 
   const all = computed(() => items.value)
@@ -33,13 +54,22 @@ export const useLibrary = defineStore('library', () => {
   async function addBlob(name: string, blob: Blob): Promise<FileMeta> {
     const kind = kindOf(name)
     if (!kind) throw new Error(`Unsupported file type: ${name}`)
-    const meta: FileMeta = {
-      id: crypto.randomUUID(), name, kind, size: blob.size,
-      mime: blob.type || MIME[kind], addedAt: Date.now(), openedAt: null, favorite: false,
-    }
-    await db.putFile(meta, blob)
+    const meta = toMeta(await api.saveOutput({ name, mimeType: blob.type || MIME[kind], data: blob }))
+    if (!meta) throw new Error(`Unsupported file type: ${name}`)
     items.value.unshift(meta)
     return meta
+  }
+
+  /** Native picker (device) or file dialog (browser). `link` keeps the original file in place instead of copying. */
+  async function importFromDevice(opts: { accept?: string[]; multiple?: boolean; mode?: 'copy' | 'link' } = {}) {
+    const res = await api.importFromDevice({
+      accept: opts.accept ?? Object.keys(EXT_KIND).map((e) => `.${e}`),
+      multiple: opts.multiple ?? true,
+      mode: opts.mode ?? 'copy',
+    })
+    const added = toMetas(res.added)
+    items.value.unshift(...added)
+    return { added, skipped: res.skipped }
   }
 
   /** Import files chosen with <input type=file>. Unsupported types are skipped and reported. */
@@ -54,9 +84,7 @@ export const useLibrary = defineStore('library', () => {
   }
 
   async function blobOf(id: string): Promise<Blob> {
-    const b = await db.getBlob(id)
-    if (!b) throw new Error('The file no longer exists')
-    return b
+    return api.readContent(id)
   }
 
   async function bytesOf(id: string): Promise<Uint8Array> {
@@ -64,42 +92,37 @@ export const useLibrary = defineStore('library', () => {
   }
 
   async function touch(id: string) {
-    const m = find(id)
-    if (!m) return
-    m.openedAt = Date.now()
-    await db.putMeta({ ...m })
+    if (!find(id)) return
+    apply(await api.updateDocument(id, { lastOpenedAt: Date.now() }))
   }
 
   async function toggleFavorite(id: string) {
     const m = find(id)
     if (!m) return
-    m.favorite = !m.favorite
-    await db.putMeta({ ...m })
+    apply(await api.updateDocument(id, { isFavorite: !m.favorite }))
   }
 
   async function rename(id: string, name: string) {
     const m = find(id)
     if (!m) return
     const ext = m.name.includes('.') ? m.name.slice(m.name.lastIndexOf('.')) : ''
-    m.name = name.toLowerCase().endsWith(ext.toLowerCase()) ? name : name + ext
-    await db.putMeta({ ...m })
+    const displayName = name.toLowerCase().endsWith(ext.toLowerCase()) ? name : name + ext
+    apply(await api.updateDocument(id, { displayName }))
   }
 
   /** Overwrite the stored bytes of an existing file (used when saving annotations). */
   async function replaceBlob(id: string, blob: Blob) {
-    const m = find(id)
-    if (!m) return
-    m.size = blob.size
-    await db.putFile({ ...m }, blob)
+    if (!find(id)) return
+    apply(await api.replaceContent(id, blob))
   }
 
   async function remove(ids: string[]) {
-    for (const id of ids) await db.removeFile(id)
+    await api.removeDocuments(ids)
     items.value = items.value.filter((f) => !ids.includes(f.id))
   }
 
   return {
     items, loaded, all, recent, favorites, pdfs, images, documents,
-    load, find, addBlob, importFiles, blobOf, bytesOf, touch, toggleFavorite, rename, replaceBlob, remove,
+    load, find, addBlob, importFiles, importFromDevice, blobOf, bytesOf, touch, toggleFavorite, rename, replaceBlob, remove,
   }
 })

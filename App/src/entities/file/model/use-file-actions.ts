@@ -1,6 +1,6 @@
 import { askConfirm, askText, toast } from '@/shared/ui'
 import { errorMessage } from '@/shared/lib/error'
-import { saveToDevice, shareFile } from '@/shared/lib/platform'
+import { api } from '../api/native-api'
 import { useLibrary } from './store'
 import type { FileMeta } from './types'
 
@@ -10,7 +10,7 @@ export function useFileActions() {
 
   async function share(f: FileMeta): Promise<void> {
     try {
-      await shareFile(f.name, await lib.blobOf(f.id))
+      await api.shareDocument(f.id)
     } catch (e) {
       // Dismissing the share sheet is not an error.
       if ((e as Error).name !== 'AbortError') toast(errorMessage(e), true)
@@ -19,9 +19,9 @@ export function useFileActions() {
 
   async function saveCopy(f: FileMeta): Promise<void> {
     try {
-      toast(`Saved: ${await saveToDevice(f.name, await lib.blobOf(f.id))}`)
+      toast(`Saved: ${(await api.exportDocument(f.id)).where}`)
     } catch (e) {
-      toast(errorMessage(e), true)
+      if ((e as Error).name !== 'AbortError') toast(errorMessage(e), true)
     }
   }
 
