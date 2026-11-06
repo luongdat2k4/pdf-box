@@ -1,3 +1,4 @@
+import { t } from '@/shared/i18n'
 import { ref, type ShallowRef } from 'vue'
 import {
   applyAnnotations, destroyDoc, openWithPassword,
@@ -65,7 +66,7 @@ export function useAnnotations({ doc, source, file }: Options) {
       annots.value = []
       undone.value = []
       dirty.value = false
-      toast('Saved')
+      toast(t('annotate.saved'))
     } catch (e) {
       toast(errorMessage(e), true)
     } finally {

@@ -1,7 +1,9 @@
 <script setup lang="ts">
+import { t } from '@/shared/i18n'
 import { computed, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { Ic, toast } from '@/shared/ui'
+import { tp, type MessageKey } from '@/shared/i18n'
 import { errorMessage } from '@/shared/lib/error'
 import { useDragScroll } from '@/shared/lib/use-drag-scroll'
 import { useDragFab } from '@/shared/lib/use-drag-fab'
@@ -30,10 +32,10 @@ useDragScroll(chipsEl)
 const fabEl = ref<HTMLElement | null>(null)
 const fab = useDragFab(fabEl, 'pdftoolbox.fabOffset')
 
-const tabs: { id: Tab; label: string }[] = [
-  { id: 'home', label: 'Home' },
-  { id: 'history', label: 'History' },
-  { id: 'favorites', label: 'Favorites' },
+const tabs: { id: Tab; label: MessageKey }[] = [
+  { id: 'home', label: 'home.tab.home' },
+  { id: 'history', label: 'home.tab.history' },
+  { id: 'favorites', label: 'home.tab.favorites' },
 ]
 const base = import.meta.env.BASE_URL
 // `icon` = file name in public/assets/icons/<icon>.webp
@@ -42,6 +44,10 @@ const chips: { id: 'all' | FileKind; label: string; icon: string }[] = [
   { id: 'excel', label: 'Excel', icon: 'excel' }, { id: 'ppt', label: 'PPT', icon: 'ppt' }, { id: 'txt', label: 'TXT', icon: 'txt' },
   { id: 'md', label: 'MD', icon: 'md' }, { id: 'image', label: 'Images', icon: 'image' },
 ]
+
+function chipLabel(c: { id: 'all' | FileKind; label: string }): string {
+  return c.id === 'all' ? t('home.chip.all') : c.id === 'image' ? t('home.chip.images') : c.label
+}
 
 function selectChip(id: 'all' | FileKind, e: MouseEvent) {
   go(tab.value, id)
@@ -56,12 +62,12 @@ const list = computed(() => {
 
 const emptyText = computed(() => {
   if (filter.value !== 'all') {
-    const label = chips.find((c) => c.id === filter.value)?.label
-    return `Nothing in “${label}” yet.`
+    const chip = chips.find((c) => c.id === filter.value)
+    return t('home.nothingIn', { type: chip ? chipLabel(chip) : '' })
   }
-  return tab.value === 'history' ? 'Files you open will show up here.'
-    : tab.value === 'favorites' ? 'Tap the star on a file to keep it here.'
-    : 'Your library is empty. Import PDF, Word, Excel, PPT, TXT, Markdown or image files to get started.'
+  return tab.value === 'history' ? t('home.emptyHistory')
+    : tab.value === 'favorites' ? t('home.emptyFavorites')
+    : t('home.emptyLibrary')
 })
 
 async function open(f: FileMeta) {
@@ -74,8 +80,8 @@ async function pick() {
   toolsOpen.value = false
   try {
     const { added, skipped } = await lib.importFromDevice()
-    if (added.length) toast(`Imported ${added.length} file${added.length > 1 ? 's' : ''}`)
-    if (skipped.length) toast(`Unsupported: ${skipped.join(', ')}`, true)
+    if (added.length) toast(tp('home.imported', added.length))
+    if (skipped.length) toast(t('common.unsupported', { names: skipped.join(', ') }), true)
   } catch (err) { toast(errorMessage(err), true) }
 }
 </script>
@@ -85,25 +91,25 @@ async function pick() {
     <header class="safe-top flex-none bg-header text-white">
       <div class="flex h-14 items-center gap-2 px-4">
         <h1 class="flex-1 text-lg font-bold tracking-tight">PDF Toolbox</h1>
-        <button class="grid size-10 place-items-center rounded-full active:bg-white/15" aria-label="Settings" @click="router.push('/settings')">
+        <button class="grid size-10 place-items-center rounded-full active:bg-white/15" :aria-label="t('home.settings')" @click="router.push('/settings')">
           <Ic name="settings" />
         </button>
-        <button class="grid size-10 place-items-center rounded-full active:bg-white/15" aria-label="Search files" @click="router.push('/search')">
+        <button class="grid size-10 place-items-center rounded-full active:bg-white/15" :aria-label="t('home.searchFiles')" @click="router.push('/search')">
           <Ic name="search" />
         </button>
       </div>
       <nav class="flex px-2" role="tablist">
         <button
-          v-for="t in tabs"
-          :key="t.id"
+          v-for="tb in tabs"
+          :key="tb.id"
           role="tab"
-          :aria-selected="tab === t.id"
+          :aria-selected="tab === tb.id"
           class="relative flex-1 pb-2.5 pt-1 text-center transition"
-          :class="tab === t.id ? 'text-[18px] font-semibold text-white' : 'text-[14px] text-white/60'"
-          @click="go(t.id, filter)"
+          :class="tab === tb.id ? 'text-[18px] font-semibold text-white' : 'text-[14px] text-white/60'"
+          @click="go(tb.id, filter)"
         >
-          {{ t.label }}
-          <span v-if="tab === t.id" class="absolute inset-x-1/3 bottom-0 h-[3px] rounded-full bg-primary" />
+          {{ t(tb.label) }}
+          <span v-if="tab === tb.id" class="absolute inset-x-1/3 bottom-0 h-[3px] rounded-full bg-primary" />
         </button>
       </nav>
     </header>
@@ -122,7 +128,7 @@ async function pick() {
         >
           <img :src="`${base}assets/icons/${c.icon}.webp`" :alt="''" class="size-8 object-contain" draggable="false" />
         </span>
-        <span class="text-[12px] leading-none" :class="filter === c.id ? 'font-semibold text-primary' : 'text-ink/65'">{{ c.label }}</span>
+        <span class="text-[12px] leading-none" :class="filter === c.id ? 'font-semibold text-primary' : 'text-ink/65'">{{ chipLabel(c) }}</span>
       </button>
     </div>
 
@@ -132,7 +138,7 @@ async function pick() {
           <Ic name="files" :size="56" class="mx-auto text-surface-strong" />
           <p class="mt-3 text-sm text-ink/55">{{ emptyText }}</p>
           <button v-if="tab === 'home' && !lib.items.length && filter === 'all'" class="mt-4 rounded-full bg-primary px-6 py-2.5 text-sm font-semibold text-white" @click="pick()">
-            Import files
+            {{ t('home.importFiles') }}
           </button>
         </div>
       </div>
@@ -143,7 +149,7 @@ async function pick() {
       ref="fabEl"
       class="fixed right-5 bottom-[calc(1.25rem+env(safe-area-inset-bottom,0px))] grid size-14 touch-none place-items-center rounded-full bg-primary text-white shadow-lg shadow-primary/40 select-none active:bg-primary-dark"
       :style="fab.style.value"
-      aria-label="Open tools"
+      :aria-label="t('home.openTools')"
       @click="toolsOpen = true"
     >
       <Ic name="tools" :size="26" />

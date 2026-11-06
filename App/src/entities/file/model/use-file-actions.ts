@@ -1,5 +1,6 @@
 import { askConfirm, askText, toast } from '@/shared/ui'
 import { errorMessage } from '@/shared/lib/error'
+import { t } from '@/shared/i18n'
 import { api } from '../api/native-api'
 import { useLibrary } from './store'
 import type { FileMeta } from './types'
@@ -19,7 +20,7 @@ export function useFileActions() {
 
   async function saveCopy(f: FileMeta): Promise<void> {
     try {
-      toast(`Saved: ${(await api.exportDocument(f.id)).where}`)
+      toast(t('file.savedTo', { where: (await api.exportDocument(f.id)).where }))
     } catch (e) {
       if ((e as Error).name !== 'AbortError') toast(errorMessage(e), true)
     }
@@ -27,15 +28,15 @@ export function useFileActions() {
 
   async function rename(f: FileMeta): Promise<void> {
     const base = f.name.includes('.') ? f.name.slice(0, f.name.lastIndexOf('.')) : f.name
-    const name = (await askText('Rename file', 'File name', base, 'Rename'))?.trim()
+    const name = (await askText(t('file.renameTitle'), t('file.name'), base, t('common.rename')))?.trim()
     if (name) await lib.rename(f.id, name)
   }
 
   async function remove(f: FileMeta): Promise<boolean> {
-    const ok = await askConfirm('Delete file?', `"${f.name}" will be permanently removed from the library.`, 'Delete', true)
+    const ok = await askConfirm(t('file.deleteTitle'), t('file.deleteMsg', { name: f.name }), t('common.delete'), true)
     if (ok) {
       await lib.remove([f.id])
-      toast('Deleted')
+      toast(t('file.deleted'))
     }
     return ok
   }

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { t, tp } from '@/shared/i18n'
 import { computed, onBeforeUnmount, ref, shallowRef } from 'vue'
 import { ToolBar, BottomAction, toast } from '@/shared/ui'
 import { FileSelect, ResultSheet, useLibrary, ACCEPT_PDF, savePdf, useRunner } from '@/entities/file'
@@ -36,7 +37,7 @@ function toggle(n: number) {
 
 function applyRange() {
   const idx = parsePageRanges(rangeText.value, pageCount.value)
-  if (!idx) return toast('Invalid page range. Example: 1-3, 5, 8-', true)
+  if (!idx) return toast(t('split.invalidRange'), true)
   selected.value = idx.map((i) => i + 1)
 }
 
@@ -62,30 +63,30 @@ onBeforeUnmount(reset)
 
 <template>
   <div class="flex h-full flex-col bg-white">
-    <ToolBar title="Split PDF" :subtitle="doc ? `${file?.name} · ${pageCount} pages` : 'Choose a PDF'">
+    <ToolBar :title="t('split.title')" :subtitle="doc ? t('split.subtitle', { name: file?.name ?? '', n: pageCount }) : t('split.choose')">
       <template v-if="doc" #actions>
         <button class="rounded-full px-3 py-1.5 text-sm font-medium text-primary active:bg-surface" @click="selected = selected.length === pageCount ? [] : Array.from({ length: pageCount }, (_, i) => i + 1)">
-          {{ selected.length === pageCount ? 'Clear' : 'All' }}
+          {{ selected.length === pageCount ? t('common.clear') : t('common.all') }}
         </button>
       </template>
     </ToolBar>
 
     <template v-if="!doc">
-      <FileSelect v-model="ids" :files="lib.pdfs" :accept="ACCEPT_PDF" empty-text="No PDF files yet. Use Import to add some." />
-      <BottomAction label="Next" :busy="loading" :disabled="!ids.length" @click="next" />
+      <FileSelect v-model="ids" :files="lib.pdfs" :accept="ACCEPT_PDF" :empty-text="t('common.noPdf')" />
+      <BottomAction :label="t('common.next')" :busy="loading" :disabled="!ids.length" @click="next" />
     </template>
 
     <template v-else>
       <div class="flex flex-none gap-2 px-3 py-2">
-        <input v-model="rangeText" placeholder="Pages e.g. 1-3, 5, 8-" class="min-w-0 flex-1 rounded-xl bg-surface px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary" @keydown.enter="applyRange" />
-        <button class="rounded-xl bg-surface-strong px-4 text-sm font-semibold text-primary" @click="applyRange">Select</button>
+        <input v-model="rangeText" :placeholder="t('split.placeholder')" class="min-w-0 flex-1 rounded-xl bg-surface px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary" @keydown.enter="applyRange" />
+        <button class="rounded-xl bg-surface-strong px-4 text-sm font-semibold text-primary" @click="applyRange">{{ t('common.select') }}</button>
       </div>
       <div class="grid min-h-0 flex-1 grid-cols-3 content-start gap-2 overflow-y-auto px-3 pb-3">
         <PageThumb v-for="n in pageCount" :key="n" :doc="doc" :page-no="n" selectable :selected="selected.includes(n)" @click="toggle(n)" />
       </div>
-      <BottomAction :label="`Split ${selected.length} page${selected.length === 1 ? '' : 's'}`" :busy="busy" :disabled="!selected.length" @click="split" />
+      <BottomAction :label="tp('split.action', selected.length)" :busy="busy" :disabled="!selected.length" @click="split" />
     </template>
 
-    <ResultSheet :files="result" title="Split successfully" @close="result = []; reset(); ids = []" />
+    <ResultSheet :files="result" :title="t('split.success')" @close="result = []; reset(); ids = []" />
   </div>
 </template>

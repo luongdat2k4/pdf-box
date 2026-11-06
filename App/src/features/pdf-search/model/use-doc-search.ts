@@ -1,3 +1,4 @@
+import { t } from '@/shared/i18n'
 import { ref, type Ref } from 'vue'
 import type { PDFDocumentProxy, Rect } from '@/entities/pdf'
 import { toast } from '@/shared/ui'
@@ -70,7 +71,7 @@ export function useDocSearch(doc: Ref<PDFDocumentProxy | null>, goTo: (page: num
           goTo(hits.value[0]!.page)
         }
       }
-      if (!hits.value.length) toast('No matches. Scanned (image-only) PDFs have no searchable text.')
+      if (!hits.value.length) toast(t('search.noMatches'))
     } catch (e) {
       toast(errorMessage(e), true)
     } finally {

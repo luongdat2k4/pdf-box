@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { t } from '../../i18n'
 import { nextTick, ref, watch } from 'vue'
 import { dialogState, toasts } from './model'
 import Ic from '../Ic.vue'
@@ -52,7 +53,7 @@ function ok() {
               ref="input"
               v-model="text"
               :type="dialogState.kind === 'password' && !show ? 'password' : 'text'"
-              :placeholder="dialogState.kind === 'password' ? 'Password' : ''"
+              :placeholder="dialogState.kind === 'password' ? t('dialog.password') : ''"
               autocomplete="off"
               class="w-full rounded-xl border bg-surface px-3 py-2.5 text-sm outline-none focus:border-primary"
               :class="dialogState.kind === 'password' && dialogState.error ? 'border-danger' : 'border-transparent'"
@@ -63,24 +64,24 @@ function ok() {
               class="absolute inset-y-0 right-2 px-2 text-xs font-medium text-primary"
               @click="show = !show"
             >
-              {{ show ? 'Hide' : 'Show' }}
+              {{ show ? t('dialog.hide') : t('dialog.show') }}
             </button>
           </div>
           <p v-if="dialogState.kind === 'password' && dialogState.error" class="mt-1 text-xs text-danger">
-            Incorrect password. Try again.
+            {{ t('dialog.wrongPassword') }}
           </p>
         </form>
 
         <div class="mt-5 flex justify-end gap-2">
           <button class="rounded-xl px-4 py-2 text-sm font-medium text-ink/70 active:bg-surface" @click="cancel">
-            Cancel
+            {{ t('common.cancel') }}
           </button>
           <button
             class="rounded-xl px-4 py-2 text-sm font-semibold text-white active:opacity-80"
             :class="dialogState.kind === 'confirm' && dialogState.danger ? 'bg-danger' : 'bg-primary'"
             @click="ok"
           >
-            {{ dialogState.kind === 'password' ? 'Open' : dialogState.confirmText }}
+            {{ dialogState.kind === 'password' ? t('common.open') : dialogState.confirmText }}
           </button>
         </div>
       </div>
@@ -88,14 +89,14 @@ function ok() {
 
     <div class="pointer-events-none fixed inset-x-0 bottom-24 z-[60] flex flex-col items-center gap-2 px-6">
       <div
-        v-for="t in toasts"
-        :key="t.id"
+        v-for="item in toasts"
+        :key="item.id"
         class="flex max-w-sm items-start gap-2 rounded-2xl px-4 py-2.5 text-sm text-white shadow-lg"
-        :class="t.error ? 'bg-danger' : 'bg-ink-strong/90'"
+        :class="item.error ? 'bg-danger' : 'bg-ink-strong/90'"
         role="status"
       >
-        <Ic :name="t.error ? 'warn' : 'ok'" :size="18" class="mt-0.5 flex-none" />
-        <span>{{ t.text }}</span>
+        <Ic :name="item.error ? 'warn' : 'ok'" :size="18" class="mt-0.5 flex-none" />
+        <span>{{ item.text }}</span>
       </div>
     </div>
   </Teleport>

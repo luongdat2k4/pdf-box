@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { t } from '@/shared/i18n'
 import { computed, ref } from 'vue'
 import FileRow from './FileRow.vue'
 import { Ic, toast } from '@/shared/ui'
@@ -44,9 +45,9 @@ async function pick() {
   }
   const { added, skipped } = res
   if (!added.length && !skipped.length) return
-  if (skipped.length) toast(`Skipped unsupported: ${skipped.join(', ')}`, true)
+  if (skipped.length) toast(t('file.skipped', { names: skipped.join(', ') }), true)
   const wanted = added.filter(matches)
-  if (added.length > wanted.length) toast('Some imported files are not usable here, but were added to your library.')
+  if (added.length > wanted.length) toast(t('file.someNotUsable'))
   const ids = wanted.map((a) => a.id)
   if (ids.length) emit('update:modelValue', props.multiple ? [...props.modelValue, ...ids] : [ids[0]!])
 }
@@ -63,11 +64,11 @@ function matches(f: FileMeta) {
     <div class="flex items-center gap-2 px-3 py-2">
       <div class="flex h-10 flex-1 items-center gap-2 rounded-full bg-surface px-3">
         <Ic name="search" :size="18" class="text-ink/40" />
-        <input v-model="query" class="min-w-0 flex-1 bg-transparent text-sm outline-none" placeholder="Search files" />
+        <input v-model="query" class="min-w-0 flex-1 bg-transparent text-sm outline-none" :placeholder="t('file.searchPlaceholder')" />
       </div>
       <button class="flex h-10 items-center gap-1.5 rounded-full bg-primary px-4 text-sm font-medium text-white active:opacity-80"
         @click="pick">
-        <Ic name="upload" :size="18" /> Import
+        <Ic name="upload" :size="18" /> {{ t('file.import') }}
       </button>
     </div>
 
@@ -75,7 +76,7 @@ function matches(f: FileMeta) {
       <div v-if="!shown.length" class="grid h-full place-items-center px-8 text-center text-sm text-ink/50">
         <div>
           <Ic name="files" :size="44" class="mx-auto mb-2 text-surface-strong" />
-          {{ emptyText ?? 'No matching files yet. Use Import to add some.' }}
+          {{ emptyText ?? t('common.importHint') }}
         </div>
       </div>
       <FileRow

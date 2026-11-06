@@ -1,5 +1,6 @@
 import { registerPlugin, type PluginListenerHandle } from '@capacitor/core'
 import { askConfirm } from '@/shared/ui'
+import { t, type MessageKey } from '@/shared/i18n'
 import type { DocumentPatch, DocumentRecord, NativeApi, OpenedEvent, Settings } from './native-api'
 
 /** Raw commands of the Kotlin `Library` plugin (design-note/native-api.md, "Lệnh của plugin"). */
@@ -65,10 +66,10 @@ function blobToBase64(blob: Blob): Promise<string> {
   })
 }
 
-const WHY: Record<string, string> = {
-  CANCELLED: 'You did not choose where to save the file.',
-  PERMISSION_LOST: 'Access to your save folder was lost.',
-  NO_WRITE_PERMISSION: 'The save folder is not writable.',
+const WHY: Record<string, MessageKey> = {
+  CANCELLED: 'fallback.cancelled',
+  PERMISSION_LOST: 'fallback.permissionLost',
+  NO_WRITE_PERMISSION: 'fallback.noWrite',
 }
 
 /**
@@ -81,7 +82,7 @@ async function commitOrFallback(token: string, commit: { name?: string; mimeType
   } catch (e) {
     const code = (e as { code?: string })?.code ?? ''
     if (commit.id || !(code in WHY)) return rethrow(e)
-    const ok = await askConfirm('Save inside the app?', `${WHY[code]} Keep this file in the app's own storage instead?`, 'Save in app')
+    const ok = await askConfirm(t('fallback.title'), t('fallback.body', { why: t(WHY[code]!) }), t('fallback.confirm'))
     if (!ok) return rethrow(e)
     return await call(Library.writeCommit({ token, ...commit, fallbackToApp: true }))
   }

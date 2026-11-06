@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { t } from '@/shared/i18n'
 import { Ic } from '@/shared/ui'
 import type { IconName } from '@/shared/config/icons'
 import type { MarkTool } from '@/entities/pdf'
@@ -25,15 +26,15 @@ const tools: [MarkTool, IconName][] = [
         </button>
       </div>
       <div class="flex items-center gap-0.5">
-        <button class="grid size-9 place-items-center rounded-full disabled:opacity-25 active:bg-surface" :disabled="!canUndo" aria-label="Undo" @click="emit('undo')"><Ic name="undo" :size="20" /></button>
-        <button class="grid size-9 place-items-center rounded-full disabled:opacity-25 active:bg-surface" :disabled="!canRedo" aria-label="Redo" @click="emit('redo')"><Ic name="redo" :size="20" /></button>
+        <button class="grid size-9 place-items-center rounded-full disabled:opacity-25 active:bg-surface" :disabled="!canUndo" :aria-label="t('annotate.undo')" @click="emit('undo')"><Ic name="undo" :size="20" /></button>
+        <button class="grid size-9 place-items-center rounded-full disabled:opacity-25 active:bg-surface" :disabled="!canRedo" :aria-label="t('annotate.redo')" @click="emit('redo')"><Ic name="redo" :size="20" /></button>
         <button class="ml-0.5 flex h-9 items-center gap-1 rounded-xl bg-primary px-3 text-sm font-semibold text-white disabled:bg-primary/35" :disabled="!canSave || saving" @click="emit('save')">
-          <Ic :name="saving ? 'loading' : 'save'" :spin="saving" :size="18" /> Save
+          <Ic :name="saving ? 'loading' : 'save'" :spin="saving" :size="18" /> {{ t('common.save') }}
         </button>
       </div>
     </div>
     <div class="mt-2 flex items-center gap-3">
-      <span class="text-xs text-ink/50">{{ tool === 'hand' ? 'Scroll mode — pick a tool to mark' : 'Drag on the page to mark' }}</span>
+      <span class="text-xs text-ink/50">{{ tool === 'hand' ? t('annotate.scrollMode') : t('annotate.dragToMark') }}</span>
       <span class="flex-1" />
       <button v-for="c in MARK_COLORS" :key="c" class="size-6 rounded-full border-2" :style="{ background: c, borderColor: color === c ? '#2d75ed' : 'transparent' }" :aria-label="`Colour ${c}`" @click="color = c" />
     </div>

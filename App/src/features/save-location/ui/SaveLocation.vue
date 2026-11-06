@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
-import { ToolBar, toast } from '@/shared/ui'
+import { toast } from '@/shared/ui'
+import { t, type MessageKey } from '@/shared/i18n'
 import { errorMessage } from '@/shared/lib/error'
 import { isNative } from '@/shared/lib/platform'
 import { libraryApi, type LibrarySettings } from '@/entities/file'
@@ -12,10 +13,10 @@ const busy = ref(false)
 // Choosing where files go needs the Android pickers; the browser build only has app storage.
 const native = isNative()
 
-const modes: { id: Mode; title: string; hint: string }[] = [
-  { id: 'app', title: 'In the app', hint: "Kept in the app's own storage. Removed if you uninstall the app or clear its data." },
-  { id: 'ask', title: 'Ask every time', hint: 'Choose a location each time a new file is created.' },
-  { id: 'folder', title: 'A folder I choose', hint: 'New files go straight into one folder you pick once.' },
+const modes: { id: Mode; title: MessageKey; hint: MessageKey }[] = [
+  { id: 'app', title: 'settings.app.title', hint: 'settings.app.hint' },
+  { id: 'ask', title: 'settings.ask.title', hint: 'settings.ask.hint' },
+  { id: 'folder', title: 'settings.folder.title', hint: 'settings.folder.hint' },
 ]
 
 onMounted(async () => {
@@ -45,11 +46,9 @@ const disabled = (m: Mode) => !native && m !== 'app'
 </script>
 
 <template>
-  <div class="flex h-full flex-col bg-white">
-    <ToolBar title="Settings" />
-    <div class="min-h-0 flex-1 overflow-y-auto px-4 py-4">
-      <h2 class="mb-1 text-sm font-semibold text-ink-strong">Where new files are saved</h2>
-      <p class="mb-3 text-xs text-ink/60">Applies to files the app creates: merged, split, locked, converted and scanned documents.</p>
+  <section>
+      <h2 class="mb-1 text-sm font-semibold text-ink-strong">{{ t('settings.where') }}</h2>
+      <p class="mb-3 text-xs text-ink/60">{{ t('settings.applies') }}</p>
 
       <button
         v-for="m in modes"
@@ -63,22 +62,21 @@ const disabled = (m: Mode) => !native && m !== 'app'
           <span v-if="settings.saveMode === m.id" class="size-2.5 rounded-full bg-primary" />
         </span>
         <span class="min-w-0">
-          <span class="block text-[15px] font-medium text-ink-strong">{{ m.title }}</span>
-          <span class="block text-xs text-ink/60">{{ m.hint }}</span>
+          <span class="block text-[15px] font-medium text-ink-strong">{{ t(m.title) }}</span>
+          <span class="block text-xs text-ink/60">{{ t(m.hint) }}</span>
         </span>
       </button>
 
       <p v-if="settings.saveMode === 'folder' && settings.saveFolderUri" class="break-all rounded-xl bg-surface p-3 text-xs text-ink/70">
-        Folder: {{ decodeURIComponent(settings.saveFolderUri) }}
+        {{ t('settings.folderLabel', { uri: decodeURIComponent(settings.saveFolderUri) }) }}
       </p>
       <button
         v-if="native && settings.saveMode === 'folder'"
         class="mt-2 rounded-full bg-surface px-4 py-2 text-sm font-medium text-ink-strong active:opacity-70"
         :disabled="busy"
         @click="run(() => libraryApi.pickSaveFolder())"
-      >Change folder</button>
+      >{{ t('settings.changeFolder') }}</button>
 
-      <p v-if="!native" class="mt-3 text-xs text-ink/50">Only in-app storage is available in the browser. Other options work in the Android app.</p>
-    </div>
-  </div>
+      <p v-if="!native" class="mt-3 text-xs text-ink/50">{{ t('settings.browserOnly') }}</p>
+  </section>
 </template>

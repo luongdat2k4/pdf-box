@@ -1,17 +1,19 @@
+import type { MessageKey } from '@/shared/i18n'
+
 export interface ToolDef {
   to: string
-  label: string
+  label: MessageKey
   /** File name (without extension) in public/assets/icons/, i.e. tool-<icon>.webp */
   icon: string
 }
 
 export const TOOLS: ToolDef[] = [
-  { to: '/tool/scan', label: 'Scan PDF', icon: 'scan' },
-  { to: '/tool/img2pdf', label: 'Image to PDF', icon: 'img2pdf' },
-  { to: '/tool/pdf2img', label: 'PDF to Image', icon: 'pdf2img' },
-  { to: '/tool/doc2pdf', label: 'Word, Excel, TXT to PDF', icon: 'doc2pdf' },
-  { to: '/tool/merge', label: 'Merge PDF', icon: 'merge' },
-  { to: '/tool/split', label: 'Split PDF', icon: 'split' },
-  { to: '/tool/lock', label: 'Lock / Unlock PDF', icon: 'lock' },
-  { to: '/tool/delete', label: 'Delete files', icon: 'delete' },
+  { to: '/tool/scan', label: 'tool.scan', icon: 'scan' },
+  { to: '/tool/img2pdf', label: 'tool.img2pdf', icon: 'img2pdf' },
+  { to: '/tool/pdf2img', label: 'tool.pdf2img', icon: 'pdf2img' },
+  { to: '/tool/doc2pdf', label: 'tool.doc2pdf', icon: 'doc2pdf' },
+  { to: '/tool/merge', label: 'tool.merge', icon: 'merge' },
+  { to: '/tool/split', label: 'tool.split', icon: 'split' },
+  { to: '/tool/lock', label: 'tool.lock', icon: 'lock' },
+  { to: '/tool/delete', label: 'tool.delete', icon: 'delete' },
 ]

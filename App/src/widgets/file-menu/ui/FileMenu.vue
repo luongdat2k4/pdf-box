@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { t } from '@/shared/i18n'
 import { ref } from 'vue'
 import { BottomSheet, Ic } from '@/shared/ui'
 import { formatDate, formatSize } from '@/shared/lib/format'
@@ -24,22 +25,22 @@ function run(fn: (f: FileMeta) => unknown) {
 <template>
   <BottomSheet :open="!!file" :title="file?.name" @close="emit('close')">
     <div v-if="file" class="divide-y divide-line/40">
-      <button class="flex w-full items-center gap-3 py-3 text-sm" @click="run((f) => emit('open', f))"><Ic name="next" :size="20" /> Open</button>
-      <button class="flex w-full items-center gap-3 py-3 text-sm" @click="run(actions.rename)"><Ic name="rename" :size="20" /> Rename</button>
-      <button class="flex w-full items-center gap-3 py-3 text-sm" @click="run((f) => lib.toggleFavorite(f.id))"><Ic name="star" :size="20" /> {{ file.favorite ? 'Remove from favorites' : 'Add to favorites' }}</button>
-      <button class="flex w-full items-center gap-3 py-3 text-sm" @click="run(actions.share)"><Ic name="share" :size="20" /> Share</button>
-      <button class="flex w-full items-center gap-3 py-3 text-sm" @click="run(actions.saveCopy)"><Ic name="download" :size="20" /> Save to device</button>
-      <button class="flex w-full items-center gap-3 py-3 text-sm" @click="run((f) => (details = f))"><Ic name="info" :size="20" /> Details</button>
-      <button class="flex w-full items-center gap-3 py-3 text-sm text-danger" @click="run(actions.remove)"><Ic name="trash" :size="20" /> Delete</button>
+      <button class="flex w-full items-center gap-3 py-3 text-sm" @click="run((f) => emit('open', f))"><Ic name="next" :size="20" /> {{ t('common.open') }}</button>
+      <button class="flex w-full items-center gap-3 py-3 text-sm" @click="run(actions.rename)"><Ic name="rename" :size="20" /> {{ t('common.rename') }}</button>
+      <button class="flex w-full items-center gap-3 py-3 text-sm" @click="run((f) => lib.toggleFavorite(f.id))"><Ic name="star" :size="20" /> {{ file.favorite ? t('common.removeFavourite') : t('common.addFavourite') }}</button>
+      <button class="flex w-full items-center gap-3 py-3 text-sm" @click="run(actions.share)"><Ic name="share" :size="20" /> {{ t('common.share') }}</button>
+      <button class="flex w-full items-center gap-3 py-3 text-sm" @click="run(actions.saveCopy)"><Ic name="download" :size="20" /> {{ t('common.saveToDevice') }}</button>
+      <button class="flex w-full items-center gap-3 py-3 text-sm" @click="run((f) => (details = f))"><Ic name="info" :size="20" /> {{ t('file.detail') }}</button>
+      <button class="flex w-full items-center gap-3 py-3 text-sm text-danger" @click="run(actions.remove)"><Ic name="trash" :size="20" /> {{ t('common.delete') }}</button>
     </div>
   </BottomSheet>
 
-  <BottomSheet :open="!!details" title="File detail" @close="details = null">
+  <BottomSheet :open="!!details" :title="t('file.detail')" @close="details = null">
     <dl v-if="details" class="space-y-2 text-sm">
-      <div class="flex justify-between gap-4"><dt class="text-ink/55">File name</dt><dd class="break-all text-right font-medium">{{ details.name }}</dd></div>
-      <div class="flex justify-between"><dt class="text-ink/55">File size</dt><dd class="font-medium">{{ formatSize(details.size) }}</dd></div>
-      <div class="flex justify-between"><dt class="text-ink/55">Type</dt><dd class="font-medium uppercase">{{ details.kind }}</dd></div>
-      <div class="flex justify-between"><dt class="text-ink/55">Added</dt><dd class="font-medium">{{ formatDate(details.addedAt) }}</dd></div>
+      <div class="flex justify-between gap-4"><dt class="text-ink/55">{{ t('file.name') }}</dt><dd class="break-all text-right font-medium">{{ details.name }}</dd></div>
+      <div class="flex justify-between"><dt class="text-ink/55">{{ t('file.size') }}</dt><dd class="font-medium">{{ formatSize(details.size) }}</dd></div>
+      <div class="flex justify-between"><dt class="text-ink/55">{{ t('file.type') }}</dt><dd class="font-medium uppercase">{{ details.kind }}</dd></div>
+      <div class="flex justify-between"><dt class="text-ink/55">{{ t('file.added') }}</dt><dd class="font-medium">{{ formatDate(details.addedAt) }}</dd></div>
     </dl>
   </BottomSheet>
 </template>

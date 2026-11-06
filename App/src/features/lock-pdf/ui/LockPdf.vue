@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { t } from '@/shared/i18n'
 import { ref, watch } from 'vue'
 import { ToolBar, BottomAction, Ic, askText, toast } from '@/shared/ui'
 import { FileSelect, ResultSheet, useLibrary, ACCEPT_PDF, savePdf, useRunner } from '@/entities/file'
@@ -35,10 +36,10 @@ function go() {
       if (!opened) return null
       await destroyDoc(opened.doc)
       const out = await unlockPdf(opened.source)
-      toast('Unlocked. A copy without a password was created.')
+      toast(t('lock.unlockedToast'))
       return [await savePdf(`${stripExt(f.name)}_unlocked`, out)]
     }
-    const pw = await askText('Set a password', 'Anyone opening this PDF will need it.', '', 'Lock')
+    const pw = await askText(t('lock.setTitle'), t('lock.setMsg'), '', t('lock.lock'))
     if (!pw) return null
     const out = await lockPdf({ bytes: await lib.bytesOf(f.id) }, pw)
     return [await savePdf(`${stripExt(f.name)}_locked`, out)]
@@ -48,13 +49,13 @@ function go() {
 
 <template>
   <div class="flex h-full flex-col bg-white">
-    <ToolBar title="Lock / Unlock PDF" subtitle="AES-128 password protection" />
-    <FileSelect v-model="ids" :files="lib.pdfs" :accept="ACCEPT_PDF" empty-text="No PDF files yet. Use Import to add some." />
+    <ToolBar :title="t('lock.title')" :subtitle="t('lock.subtitle')" />
+    <FileSelect v-model="ids" :files="lib.pdfs" :accept="ACCEPT_PDF" :empty-text="t('common.noPdf')" />
     <div v-if="ids.length && locked !== null" class="mx-4 mb-2 flex items-center gap-2 rounded-xl bg-surface px-3 py-2 text-sm text-ink/70">
       <Ic :name="locked ? 'lock' : 'unlock'" :size="18" class="text-primary" />
-      {{ locked ? 'This file is password protected.' : 'This file is not protected.' }}
+      {{ locked ? t('lock.isProtected') : t('lock.notProtected') }}
     </div>
-    <BottomAction :label="locked ? 'Unlock' : 'Lock'" :busy="busy" :disabled="!ids.length || locked === null" @click="go" />
-    <ResultSheet :files="result" :title="locked ? 'Unlocked' : 'Locked'" @close="result = []; ids = []" />
+    <BottomAction :label="locked ? t('lock.unlock') : t('lock.lock')" :busy="busy" :disabled="!ids.length || locked === null" @click="go" />
+    <ResultSheet :files="result" :title="locked ? t('lock.unlocked') : t('lock.locked')" @close="result = []; ids = []" />
   </div>
 </template>

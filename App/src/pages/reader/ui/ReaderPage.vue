@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { t } from '@/shared/i18n'
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, shallowRef } from 'vue'
 import { onBeforeRouteLeave, useRouter } from 'vue-router'
 import { askConfirm, askText, BottomSheet, Ic, toast } from '@/shared/ui'
@@ -45,7 +46,7 @@ function toggleEdit() {
 }
 
 onBeforeRouteLeave(async () => {
-  if (mark.dirty.value) return askConfirm('Discard annotations?', 'You have unsaved changes.', 'Discard', true)
+  if (mark.dirty.value) return askConfirm(t('reader.discardTitle'), t('reader.discardMsg'), t('reader.discard'), true)
 })
 
 // ---- navigation ---------------------------------------------------------------------
@@ -77,10 +78,10 @@ function onScroll() {
 
 async function jump() {
   menuOpen.value = false
-  const v = await askText('Jump to page', `Enter a page from 1 to ${pageCount.value}`, String(current.value), 'Go')
+  const v = await askText(t('reader.jumpTitle'), t('reader.jumpMsg', { n: pageCount.value }), String(current.value), t('reader.go'))
   if (v === null) return
   const n = Number(v)
-  if (!Number.isInteger(n) || n < 1 || n > pageCount.value) return toast('Invalid page', true)
+  if (!Number.isInteger(n) || n < 1 || n > pageCount.value) return toast(t('reader.invalidPage'), true)
   goTo(n)
 }
 
@@ -97,7 +98,7 @@ let ro: ResizeObserver | null = null
 onMounted(async () => {
   if (!lib.loaded) await lib.load()
   const f = file.value
-  if (!f) { error.value = 'This file no longer exists.'; loading.value = false; return }
+  if (!f) { error.value = t('common.fileGone'); loading.value = false; return }
   try {
     const opened = await openWithPassword(await lib.bytesOf(f.id), f.name)
     if (!opened) return void router.back()
@@ -148,11 +149,11 @@ function menuAction(fn: (f: NonNullable<typeof file.value>) => unknown) {
     <!-- top bar -->
     <header v-show="showBars" class="safe-top z-20 flex-none bg-white shadow-sm">
       <div v-if="!search.isOpen.value" class="flex h-14 items-center gap-1 px-2">
-        <button class="grid size-10 place-items-center rounded-full active:bg-surface" aria-label="Back" @click="router.back()"><Ic name="back" /></button>
+        <button class="grid size-10 place-items-center rounded-full active:bg-surface" :aria-label="t('common.back')" @click="router.back()"><Ic name="back" /></button>
         <h1 class="min-w-0 flex-1 truncate text-[16px] font-semibold text-ink-strong">{{ file?.name ?? 'PDF' }}</h1>
-        <button class="grid size-10 place-items-center rounded-full active:bg-surface" aria-label="Search in document" @click="openSearch"><Ic name="search" /></button>
-        <button class="grid size-10 place-items-center rounded-full active:bg-surface" :class="mark.editing.value ? 'bg-surface-strong text-primary' : ''" aria-label="Annotate" @click="toggleEdit"><Ic name="pen" /></button>
-        <button class="grid size-10 place-items-center rounded-full active:bg-surface" aria-label="More" @click="menuOpen = true"><Ic name="more" /></button>
+        <button class="grid size-10 place-items-center rounded-full active:bg-surface" :aria-label="t('search.inDocument')" @click="openSearch"><Ic name="search" /></button>
+        <button class="grid size-10 place-items-center rounded-full active:bg-surface" :class="mark.editing.value ? 'bg-surface-strong text-primary' : ''" :aria-label="t('reader.annotate')" @click="toggleEdit"><Ic name="pen" /></button>
+        <button class="grid size-10 place-items-center rounded-full active:bg-surface" :aria-label="t('common.more')" @click="menuOpen = true"><Ic name="more" /></button>
       </div>
       <SearchBar
         v-else
@@ -194,7 +195,7 @@ function menuAction(fn: (f: NonNullable<typeof file.value>) => unknown) {
       <span class="rounded-lg bg-black/55 px-2 py-0.5 text-xs font-medium text-white">{{ current }} / {{ pageCount }}</span>
       <input
         v-if="pageCount > 1"
-        type="range" min="1" :max="pageCount" :value="current" aria-label="Page"
+        type="range" min="1" :max="pageCount" :value="current" :aria-label="t('reader.page')"
         class="pointer-events-auto h-[45vh] w-6 accent-primary [direction:rtl] [writing-mode:vertical-lr]"
         style="direction: ltr"
         @input="goTo(Number(($event.target as HTMLInputElement).value))"
@@ -216,13 +217,13 @@ function menuAction(fn: (f: NonNullable<typeof file.value>) => unknown) {
         @save="mark.save"
       />
       <div v-else class="flex h-12 items-center justify-between px-3">
-        <button class="flex h-9 items-center gap-1.5 rounded-xl px-3 text-sm font-medium text-ink/70 active:bg-surface" @click="thumbsOpen = true"><Ic name="thumbs" :size="20" /> Pages</button>
+        <button class="flex h-9 items-center gap-1.5 rounded-xl px-3 text-sm font-medium text-ink/70 active:bg-surface" @click="thumbsOpen = true"><Ic name="thumbs" :size="20" /> {{ t('reader.pages') }}</button>
         <div class="flex items-center gap-1">
-          <button class="grid size-9 place-items-center rounded-full disabled:opacity-25 active:bg-surface" :disabled="zoom <= 1" aria-label="Zoom out" @click="setZoom(zoom - 0.5)"><Ic name="zoomOut" :size="20" /></button>
+          <button class="grid size-9 place-items-center rounded-full disabled:opacity-25 active:bg-surface" :disabled="zoom <= 1" :aria-label="t('reader.zoomOut')" @click="setZoom(zoom - 0.5)"><Ic name="zoomOut" :size="20" /></button>
           <span class="w-12 text-center text-xs text-ink/60">{{ Math.round(zoom * 100) }}%</span>
-          <button class="grid size-9 place-items-center rounded-full disabled:opacity-25 active:bg-surface" :disabled="zoom >= 3" aria-label="Zoom in" @click="setZoom(zoom + 0.5)"><Ic name="zoomIn" :size="20" /></button>
+          <button class="grid size-9 place-items-center rounded-full disabled:opacity-25 active:bg-surface" :disabled="zoom >= 3" :aria-label="t('reader.zoomIn')" @click="setZoom(zoom + 0.5)"><Ic name="zoomIn" :size="20" /></button>
         </div>
-        <button class="rounded-xl px-3 py-2 text-sm font-medium text-ink/70 active:bg-surface" @click="jump">Go to…</button>
+        <button class="rounded-xl px-3 py-2 text-sm font-medium text-ink/70 active:bg-surface" @click="jump">{{ t('reader.goTo') }}</button>
       </div>
     </footer>
 
@@ -230,7 +231,7 @@ function menuAction(fn: (f: NonNullable<typeof file.value>) => unknown) {
     <Teleport to="body">
       <div v-if="thumbsOpen && doc" class="fixed inset-0 z-40 flex bg-black/45" @click.self="thumbsOpen = false">
         <aside class="safe-top h-full w-[72%] max-w-xs overflow-y-auto bg-white p-3">
-          <h2 class="mb-2 px-1 text-base font-semibold text-ink-strong">Pages</h2>
+          <h2 class="mb-2 px-1 text-base font-semibold text-ink-strong">{{ t('reader.pages') }}</h2>
           <div class="grid grid-cols-2 gap-2">
             <PageThumb v-for="n in pageCount" :key="n" :doc="doc" :page-no="n" :current="n === current" @click="goTo(n); thumbsOpen = false" />
           </div>
@@ -240,10 +241,10 @@ function menuAction(fn: (f: NonNullable<typeof file.value>) => unknown) {
 
     <BottomSheet :open="menuOpen" :title="file?.name" @close="menuOpen = false">
       <div class="divide-y divide-line/40 text-sm">
-        <button class="flex w-full items-center gap-3 py-3" @click="jump"><Ic name="next" :size="20" /> Jump to page</button>
-        <button v-if="file" class="flex w-full items-center gap-3 py-3" @click="menuAction((f) => lib.toggleFavorite(f.id))"><Ic name="star" :size="20" /> {{ file.favorite ? 'Remove from favorites' : 'Add to favorites' }}</button>
-        <button class="flex w-full items-center gap-3 py-3" @click="menuAction(fileActions.share)"><Ic name="share" :size="20" /> Share</button>
-        <button class="flex w-full items-center gap-3 py-3" @click="menuAction(fileActions.saveCopy)"><Ic name="download" :size="20" /> Save to device</button>
+        <button class="flex w-full items-center gap-3 py-3" @click="jump"><Ic name="next" :size="20" /> {{ t('reader.jump') }}</button>
+        <button v-if="file" class="flex w-full items-center gap-3 py-3" @click="menuAction((f) => lib.toggleFavorite(f.id))"><Ic name="star" :size="20" /> {{ file.favorite ? t('common.removeFavourite') : t('common.addFavourite') }}</button>
+        <button class="flex w-full items-center gap-3 py-3" @click="menuAction(fileActions.share)"><Ic name="share" :size="20" /> {{ t('common.share') }}</button>
+        <button class="flex w-full items-center gap-3 py-3" @click="menuAction(fileActions.saveCopy)"><Ic name="download" :size="20" /> {{ t('common.saveToDevice') }}</button>
       </div>
     </BottomSheet>
   </div>

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { t } from '@/shared/i18n'
 import { computed } from 'vue'
 import { Ic } from '@/shared/ui'
 import type { IconName } from '@/shared/config/icons'
@@ -52,11 +53,11 @@ const icon = computed<{ name: IconName; cls: string }>(() => {
       {{ order }}
     </span>
     <template v-if="actions">
-      <button class="grid size-9 place-items-center rounded-full active:bg-white" :aria-label="file.favorite ? 'Remove favourite' : 'Add favourite'"
+      <button class="grid size-9 place-items-center rounded-full active:bg-white" :aria-label="file.favorite ? t('file.unfavourite') : t('file.favourite')"
         :class="file.favorite ? 'text-amber-400' : 'text-ink/30'" @click.stop="emit('star')">
         <Ic name="star" :size="20" />
       </button>
-      <button class="grid size-9 place-items-center rounded-full text-ink/60 active:bg-white" aria-label="More" @click.stop="emit('menu')">
+      <button class="grid size-9 place-items-center rounded-full text-ink/60 active:bg-white" :aria-label="t('common.more')" @click.stop="emit('menu')">
         <Ic name="more" :size="20" />
       </button>
     </template>

@@ -1,4 +1,5 @@
 import { toast } from '@/shared/ui'
+import { t } from '@/shared/i18n'
 import { api } from '../api/native-api'
 import { openRoute } from '../lib/open-route'
 import { useLibrary } from './store'
@@ -17,7 +18,7 @@ export async function openedFiles(open: (route: string) => void): Promise<() => 
     if (!meta) {
       // Not a type we can show; drop the row the native side created for it.
       if (e.document) void lib.remove([e.document.id])
-      return void toast(e.skipped.length ? `Unsupported: ${e.skipped.join(', ')}` : 'This file type is not supported', true)
+      return void toast(e.skipped.length ? t('common.unsupported', { names: e.skipped.join(', ') }) : t('opened.unsupported'), true)
     }
     await lib.touch(meta.id)
     open(openRoute(meta))

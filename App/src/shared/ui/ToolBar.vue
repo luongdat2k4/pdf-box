@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { t } from '../i18n'
 import { useRouter } from 'vue-router'
 import Ic from './Ic.vue'
 
@@ -10,7 +11,7 @@ const back = () => (window.history.length > 1 ? router.back() : router.replace('
 <template>
   <header class="safe-top flex-none border-b border-line/60 bg-white">
     <div class="flex h-14 items-center gap-1 px-2">
-      <button class="grid size-10 place-items-center rounded-full active:bg-surface" aria-label="Back" @click="back">
+      <button class="grid size-10 place-items-center rounded-full active:bg-surface" :aria-label="t('common.back')" @click="back">
         <Ic name="back" />
       </button>
       <div class="min-w-0 flex-1">

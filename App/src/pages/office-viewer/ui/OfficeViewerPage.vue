@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { t } from '@/shared/i18n'
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { ToolBar, Ic } from '@/shared/ui'
@@ -23,7 +24,7 @@ onMounted(async () => {
   // The library store may still be loading when the route is opened directly.
   if (!lib.loaded) await lib.load()
   const f = file.value
-  if (!f) { error.value = 'This file no longer exists.'; loading.value = false; return }
+  if (!f) { error.value = t('common.fileGone'); loading.value = false; return }
   try {
     const blob = await lib.blobOf(f.id)
     if (f.kind === 'image') imageUrl.value = URL.createObjectURL(blob)
@@ -53,12 +54,12 @@ onBeforeUnmount(() => imageUrl.value && URL.revokeObjectURL(imageUrl.value))
 
 <template>
   <div class="flex h-full flex-col bg-white">
-    <ToolBar :title="file?.name ?? 'Document'" :subtitle="file ? file.kind.toUpperCase() : undefined">
+    <ToolBar :title="file?.name ?? t('office.document')" :subtitle="file ? file.kind.toUpperCase() : undefined">
       <template v-if="file && file.kind !== 'image'" #actions>
         <div v-if="file.kind === 'md'" class="mr-1 flex rounded-full bg-surface p-0.5 text-xs font-medium" role="tablist">
-          <button v-for="m in (['preview', 'source'] as const)" :key="m" role="tab" :aria-selected="mode === m" class="rounded-full px-3 py-1 capitalize" :class="mode === m ? 'bg-primary text-white' : 'text-ink/60'" @click="mode = m">{{ m }}</button>
+          <button v-for="m in (['preview', 'source'] as const)" :key="m" role="tab" :aria-selected="mode === m" class="rounded-full px-3 py-1" :class="mode === m ? 'bg-primary text-white' : 'text-ink/60'" @click="mode = m">{{ m === 'preview' ? t('office.preview') : t('office.source') }}</button>
         </div>
-        <button class="rounded-full px-3 py-1.5 text-sm font-medium text-primary active:bg-surface" @click="router.push('/tool/doc2pdf')">To PDF</button>
+        <button class="rounded-full px-3 py-1.5 text-sm font-medium text-primary active:bg-surface" @click="router.push('/tool/doc2pdf')">{{ t('office.toPdf') }}</button>
       </template>
     </ToolBar>
     <main class="min-h-0 flex-1 overflow-auto bg-surface p-3">

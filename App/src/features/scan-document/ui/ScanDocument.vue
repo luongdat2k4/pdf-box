@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { t, tp } from '@/shared/i18n'
 import { onBeforeUnmount, ref } from 'vue'
 import { Camera, CameraResultType, CameraSource } from '@capacitor/camera'
 import { ToolBar, BottomAction, Ic, toast } from '@/shared/ui'
@@ -97,7 +98,7 @@ function create() {
   void run(async () => {
     const images: RasterImage[] = []
     for (const [i, s] of shots.value.entries()) {
-      progress.value = `Page ${i + 1} / ${shots.value.length}`
+      progress.value = t('scan.page', { i: i + 1, n: shots.value.length })
       images.push(mode.value === 'document' ? await enhance(s.blob) : await normalizeImage(s.blob))
     }
     return [await savePdf(`scan_${timestamp()}`, await imagesToPdf(images, size.value))]
@@ -109,13 +110,13 @@ onBeforeUnmount(() => shots.value.forEach((s) => URL.revokeObjectURL(s.url)))
 
 <template>
   <div class="flex h-full flex-col bg-white">
-    <ToolBar title="Scan to PDF" :subtitle="`${shots.length} page${shots.length === 1 ? '' : 's'}`" />
+    <ToolBar :title="t('scan.title')" :subtitle="tp('scan.pages', shots.length)" />
 
     <main class="min-h-0 flex-1 overflow-y-auto p-3">
       <div v-if="!shots.length" class="grid h-full place-items-center px-8 text-center text-sm text-ink/50">
         <div>
           <Ic name="scan" :size="56" class="mx-auto text-surface-strong" />
-          <p class="mt-3">Take photos of your pages or add them from the gallery, then create a PDF.</p>
+          <p class="mt-3">{{ t('scan.intro') }}</p>
         </div>
       </div>
       <div class="grid grid-cols-2 gap-3">
@@ -123,9 +124,9 @@ onBeforeUnmount(() => shots.value.forEach((s) => URL.revokeObjectURL(s.url)))
           <img :src="s.url" class="aspect-[3/4] w-full rounded-lg bg-white object-contain" alt="" />
           <span class="absolute top-3 left-3 rounded-full bg-primary px-2 text-xs font-semibold text-white">{{ i + 1 }}</span>
           <div class="mt-1.5 flex items-center justify-between">
-            <button class="grid size-8 place-items-center rounded-full text-ink/60 disabled:opacity-25 active:bg-white" :disabled="i === 0" aria-label="Move earlier" @click="move(i, -1)"><Ic name="back" :size="18" /></button>
-            <button class="grid size-8 place-items-center rounded-full text-danger active:bg-white" aria-label="Delete page" @click="remove(s.id)"><Ic name="trash" :size="18" /></button>
-            <button class="grid size-8 place-items-center rounded-full text-ink/60 disabled:opacity-25 active:bg-white" :disabled="i === shots.length - 1" aria-label="Move later" @click="move(i, 1)"><Ic name="next" :size="18" /></button>
+            <button class="grid size-8 place-items-center rounded-full text-ink/60 disabled:opacity-25 active:bg-white" :disabled="i === 0" :aria-label="t('scan.moveEarlier')" @click="move(i, -1)"><Ic name="back" :size="18" /></button>
+            <button class="grid size-8 place-items-center rounded-full text-danger active:bg-white" :aria-label="t('scan.deletePage')" @click="remove(s.id)"><Ic name="trash" :size="18" /></button>
+            <button class="grid size-8 place-items-center rounded-full text-ink/60 disabled:opacity-25 active:bg-white" :disabled="i === shots.length - 1" :aria-label="t('scan.moveLater')" @click="move(i, 1)"><Ic name="next" :size="18" /></button>
           </div>
         </div>
       </div>
@@ -133,20 +134,20 @@ onBeforeUnmount(() => shots.value.forEach((s) => URL.revokeObjectURL(s.url)))
 
     <div class="flex-none space-y-3 border-t border-line/50 px-4 py-3">
       <div class="flex gap-2">
-        <button class="flex h-11 flex-1 items-center justify-center gap-2 rounded-2xl bg-surface-strong text-sm font-semibold text-primary active:opacity-80" @click="capture"><Ic name="camera" :size="20" /> Camera</button>
-        <button class="flex h-11 flex-1 items-center justify-center gap-2 rounded-2xl bg-surface text-sm font-semibold text-primary active:opacity-80" @click="galleryInput?.click()"><Ic name="image" :size="20" /> Gallery</button>
+        <button class="flex h-11 flex-1 items-center justify-center gap-2 rounded-2xl bg-surface-strong text-sm font-semibold text-primary active:opacity-80" @click="capture"><Ic name="camera" :size="20" /> {{ t('scan.camera') }}</button>
+        <button class="flex h-11 flex-1 items-center justify-center gap-2 rounded-2xl bg-surface text-sm font-semibold text-primary active:opacity-80" @click="galleryInput?.click()"><Ic name="image" :size="20" /> {{ t('scan.gallery') }}</button>
       </div>
       <div class="flex items-center gap-2">
-        <button class="rounded-full px-3.5 py-1.5 text-sm font-medium" :class="mode === 'document' ? 'bg-primary text-white' : 'bg-surface text-ink/70'" @click="mode = 'document'">Document</button>
-        <button class="rounded-full px-3.5 py-1.5 text-sm font-medium" :class="mode === 'color' ? 'bg-primary text-white' : 'bg-surface text-ink/70'" @click="mode = 'color'">Colour</button>
+        <button class="rounded-full px-3.5 py-1.5 text-sm font-medium" :class="mode === 'document' ? 'bg-primary text-white' : 'bg-surface text-ink/70'" @click="mode = 'document'">{{ t('scan.document') }}</button>
+        <button class="rounded-full px-3.5 py-1.5 text-sm font-medium" :class="mode === 'color' ? 'bg-primary text-white' : 'bg-surface text-ink/70'" @click="mode = 'color'">{{ t('scan.colour') }}</button>
         <span class="flex-1" />
         <button v-for="s in sizes.slice(0, 3)" :key="s" class="rounded-full px-3 py-1.5 text-sm font-medium" :class="size === s ? 'bg-primary text-white' : 'bg-surface text-ink/70'" @click="size = s">{{ s }}</button>
       </div>
     </div>
-    <BottomAction :label="busy ? progress || 'Working…' : 'Create PDF'" :busy="busy" :disabled="!shots.length" @click="create" />
+    <BottomAction :label="busy ? progress || t('common.working') : t('img2pdf.create')" :busy="busy" :disabled="!shots.length" @click="create" />
 
     <input ref="cameraInput" type="file" accept="image/*" capture="environment" class="hidden" @change="onFiles" />
     <input ref="galleryInput" type="file" accept="image/*" multiple class="hidden" @change="onFiles" />
-    <ResultSheet :files="result" title="Scan saved" @close="result = []; clearShots()" />
+    <ResultSheet :files="result" :title="t('scan.saved')" @close="result = []; clearShots()" />
   </div>
 </template>

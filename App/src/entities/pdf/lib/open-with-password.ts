@@ -1,3 +1,4 @@
+import { t } from '@/shared/i18n'
 import { askPassword } from '@/shared/ui'
 import { openPdf, PasswordRequiredError, type PDFDocumentProxy } from './pdfjs'
 import type { PdfSource } from '../model/types'
@@ -19,7 +20,7 @@ export async function openWithPassword(bytes: Uint8Array, name: string, initial?
       return { doc, source: { bytes, password } }
     } catch (e) {
       if (!(e instanceof PasswordRequiredError)) throw e
-      const pw = await askPassword(`${name} is protected`, e.wrong, 'Enter the password to open this file.')
+      const pw = await askPassword(t('dialog.protected', { name }), e.wrong, t('dialog.enterPassword'))
       if (pw === null) return null
       password = pw
     }
