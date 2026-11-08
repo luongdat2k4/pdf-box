@@ -1,12 +1,10 @@
 <script setup lang="ts">
 import { t, tp } from '@/shared/i18n'
 import { onBeforeUnmount, ref } from 'vue'
-import { Camera, CameraResultType, CameraSource } from '@capacitor/camera'
-import { ToolBar, BottomAction, Ic, toast } from '@/shared/ui'
+import ScanCameraView from './ScanCameraView.vue'
+import { ToolBar, BottomAction, Ic } from '@/shared/ui'
 import { ResultSheet, savePdf, useRunner } from '@/entities/file'
 import { imagesToPdf, normalizeImage, type RasterImage, PAGE_SIZES, type PageSizeKey, canvasToBlob } from '@/entities/pdf'
-import { isNative } from '@/shared/lib/platform'
-import { errorMessage } from '@/shared/lib/error'
 import { timestamp } from '@/shared/lib/format'
 
 interface Shot { id: number; blob: Blob; url: string }
@@ -16,23 +14,12 @@ const shots = ref<Shot[]>([])
 const size = ref<PageSizeKey>('A4')
 const sizes = Object.keys(PAGE_SIZES) as PageSizeKey[]
 const mode = ref<'color' | 'document'>('document')
-const cameraInput = ref<HTMLInputElement | null>(null)
+const cameraOpen = ref(true)
 const galleryInput = ref<HTMLInputElement | null>(null)
 let nextId = 1
 
 function add(blob: Blob) {
   shots.value.push({ id: nextId++, blob, url: URL.createObjectURL(blob) })
-}
-
-async function capture() {
-  if (!isNative()) return void cameraInput.value?.click()
-  try {
-    const photo = await Camera.getPhoto({ quality: 92, resultType: CameraResultType.Uri, source: CameraSource.Camera, correctOrientation: true })
-    if (photo.webPath) add(await (await fetch(photo.webPath)).blob())
-  } catch (e) {
-    // The user pressing back/cancel in the camera is not an error.
-    if (!/cancel/i.test(errorMessage(e))) toast(errorMessage(e), true)
-  }
 }
 
 function onFiles(e: Event) {
@@ -109,7 +96,8 @@ onBeforeUnmount(() => shots.value.forEach((s) => URL.revokeObjectURL(s.url)))
 </script>
 
 <template>
-  <div class="flex h-full flex-col bg-white">
+  <ScanCameraView v-if="cameraOpen" :count="shots.length" :thumbnail="shots[shots.length - 1]?.url" @shot="add" @close="cameraOpen = false" @gallery="cameraOpen = false; galleryInput?.click()" />
+  <div v-else class="flex h-full flex-col bg-white">
     <ToolBar :title="t('scan.title')" :subtitle="tp('scan.pages', shots.length)" />
 
     <main class="min-h-0 flex-1 overflow-y-auto p-3">
@@ -134,7 +122,7 @@ onBeforeUnmount(() => shots.value.forEach((s) => URL.revokeObjectURL(s.url)))
 
     <div class="flex-none space-y-3 border-t border-line/50 px-4 py-3">
       <div class="flex gap-2">
-        <button class="flex h-11 flex-1 items-center justify-center gap-2 rounded-2xl bg-surface-strong text-sm font-semibold text-primary active:opacity-80" @click="capture"><Ic name="camera" :size="20" /> {{ t('scan.camera') }}</button>
+        <button class="flex h-11 flex-1 items-center justify-center gap-2 rounded-2xl bg-surface-strong text-sm font-semibold text-primary active:opacity-80" @click="cameraOpen = true"><Ic name="camera" :size="20" /> {{ t('scan.camera') }}</button>
         <button class="flex h-11 flex-1 items-center justify-center gap-2 rounded-2xl bg-surface text-sm font-semibold text-primary active:opacity-80" @click="galleryInput?.click()"><Ic name="image" :size="20" /> {{ t('scan.gallery') }}</button>
       </div>
       <div class="flex items-center gap-2">
@@ -146,8 +134,7 @@ onBeforeUnmount(() => shots.value.forEach((s) => URL.revokeObjectURL(s.url)))
     </div>
     <BottomAction :label="busy ? progress || t('common.working') : t('img2pdf.create')" :busy="busy" :disabled="!shots.length" @click="create" />
 
-    <input ref="cameraInput" type="file" accept="image/*" capture="environment" class="hidden" @change="onFiles" />
-    <input ref="galleryInput" type="file" accept="image/*" multiple class="hidden" @change="onFiles" />
     <ResultSheet :files="result" :title="t('scan.saved')" @close="result = []; clearShots()" />
   </div>
+  <input ref="galleryInput" type="file" accept="image/*" multiple class="hidden" @change="onFiles" />
 </template>
