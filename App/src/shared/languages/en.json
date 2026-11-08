@@ -96,6 +96,7 @@
   "file.renameTitle": "Rename file",
   "file.deleteTitle": "Delete file?",
   "file.deleteMsg": "\"{name}\" will be permanently deleted from this device and the library. This can't be undone.",
+  "file.modified": "File modified",
   "file.deleteDenied": "Unable to delete some files. Allow write access or delete them in the device's file manager. Files that could not be deleted remain in the library.",
   "file.deleted": "Deleted",
   "file.savedTo": "Saved: {where}",

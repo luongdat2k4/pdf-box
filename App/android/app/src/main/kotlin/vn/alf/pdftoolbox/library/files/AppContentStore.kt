@@ -55,6 +55,7 @@ class AppContentStore(private val root: File) {
         docsDir.mkdirs()
         if (!temp.renameTo(dest)) {
             temp.copyTo(dest, overwrite = true)
+            dest.setLastModified(temp.lastModified())
             temp.delete()
         }
     }

@@ -47,7 +47,7 @@ const icon = computed<{ name: IconName; cls: string }>(() => {
     </div>
     <div class="min-w-0 flex-1">
       <p class="truncate text-[15px] font-medium text-ink-strong">{{ file.name }}</p>
-      <p class="truncate text-xs text-ink/55">{{ formatSize(file.size) }} · {{ formatDate(file.addedAt) }}</p>
+      <p class="truncate text-xs text-ink/55">{{ formatSize(file.size) }} · {{ file.modifiedAt ? formatDate(file.modifiedAt) : '—' }}</p>
     </div>
     <span v-if="order" class="grid size-6 flex-none place-items-center rounded-full bg-primary text-xs font-semibold text-white">
       {{ order }}

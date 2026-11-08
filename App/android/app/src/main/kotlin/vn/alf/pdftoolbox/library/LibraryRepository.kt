@@ -89,10 +89,10 @@ class LibraryRepository(
                 val existing = dao.find(Storage.EXTERNAL, location)
                 if (existing == null) {
                     dao.insert(newEntity(newId(), Storage.EXTERNAL, location, info.name,
-                        MimeTypes.resolve(info.mimeType, info.name), info.sizeBytes))
+                        MimeTypes.resolve(info.mimeType, info.name), info.sizeBytes, info.modifiedAt))
                 } else locked(existing.id) {
                     dao.get(existing.id)?.let { current ->
-                        dao.update(current.copy(sizeBytes = info.sizeBytes, mimeType = MimeTypes.resolve(info.mimeType, info.name)))
+                        dao.update(current.copy(sizeBytes = info.sizeBytes, mimeType = MimeTypes.resolve(info.mimeType, info.name), modifiedAt = info.modifiedAt ?: current.modifiedAt))
                     }
                 }
             }
@@ -106,7 +106,23 @@ class LibraryRepository(
 
     // ---- library ---------------------------------------------------------------------------------------------
 
-    suspend fun list(): List<DocumentEntity> = dao.getAll()
+    suspend fun list(): List<DocumentEntity> {
+        // Backfill and refresh from the file itself, without changing addedAt or user metadata.
+        for (entry in dao.getAll()) {
+            val time = try { fileTime(entry) } catch (_: Exception) { null }
+            if (time != null && time != entry.modifiedAt) locked(entry.id) {
+                val current = dao.get(entry.id) ?: return@locked
+                // A concurrent save may already have supplied a newer timestamp.
+                if (current.modifiedAt == entry.modifiedAt) dao.update(current.copy(modifiedAt = time))
+            }
+        }
+        return dao.getAll()
+    }
+
+    private fun fileTime(doc: DocumentEntity): Long? = when (doc.storage) {
+        Storage.APP -> app.resolve(doc.location).lastModified().takeIf { it > 0 }
+        Storage.EXTERNAL -> external.modifiedAt(Uri.parse(doc.location))
+    }
 
     suspend fun get(id: String): DocumentEntity = requireDocument(id)
 
@@ -219,7 +235,7 @@ class LibraryRepository(
             val location = p.uri.toString()
             return locked("uri:$location") {
                 dao.find(Storage.EXTERNAL, location)?.let { return@locked it } // already linked
-                val entity = newEntity(newId(), Storage.EXTERNAL, location, info.name, MimeTypes.resolve(info.mimeType, info.name), info.sizeBytes)
+                val entity = newEntity(newId(), Storage.EXTERNAL, location, info.name, MimeTypes.resolve(info.mimeType, info.name), info.sizeBytes, info.modifiedAt)
                 try {
                     dao.insert(entity)
                 } catch (t: Throwable) {
@@ -239,7 +255,8 @@ class LibraryRepository(
         try {
             external.openInput(uri).use { input -> temp.outputStream().use { input.copyTo(it) } }
             val size = temp.length()
-            val entity = newEntity(id, Storage.APP, location, info.name, MimeTypes.resolve(info.mimeType, info.name), size)
+            info.modifiedAt?.let { temp.setLastModified(it) }
+            val entity = newEntity(id, Storage.APP, location, info.name, MimeTypes.resolve(info.mimeType, info.name), size, info.modifiedAt)
             insertAppDocument(temp, entity)
             return entity
         } finally {
@@ -254,7 +271,7 @@ class LibraryRepository(
         val clean = name.trim()
         if (clean.isEmpty()) throw invalid("name must not be blank")
         val id = newId()
-        val entity = newEntity(id, Storage.APP, app.newLocation(id, clean), clean, MimeTypes.resolve(mimeType, clean), temp.length())
+        val entity = newEntity(id, Storage.APP, app.newLocation(id, clean), clean, MimeTypes.resolve(mimeType, clean), temp.length(), temp.lastModified().takeIf { it > 0 })
         insertAppDocument(temp, entity)
         return entity
     }
@@ -292,7 +309,7 @@ class LibraryRepository(
         } catch (_: LibraryException) {
             requestedName
         }
-        val entity = newEntity(newId(), Storage.EXTERNAL, uri.toString(), actualName, mime, size)
+        val entity = newEntity(newId(), Storage.EXTERNAL, uri.toString(), actualName, mime, size, external.modifiedAt(uri))
         dao.insert(entity)
         return entity
     }
@@ -309,11 +326,11 @@ class LibraryRepository(
         }
     }
 
-    private fun newEntity(id: String, storage: Storage, location: String, name: String, mime: String, size: Long?) =
+    private fun newEntity(id: String, storage: Storage, location: String, name: String, mime: String, size: Long?, modifiedAt: Long?) =
         DocumentEntity(
             id = id, storage = storage, location = location, displayName = name, mimeType = mime,
             sizeBytes = size, pageCount = null, isEncrypted = false, isFavorite = false,
-            lastPage = 0, lastZoom = null, lastOpenedAt = null, addedAt = clock(),
+            lastPage = 0, lastZoom = null, lastOpenedAt = null, addedAt = clock(), modifiedAt = modifiedAt,
         )
 
     // ---- content ---------------------------------------------------------------------------------------------
@@ -326,7 +343,7 @@ class LibraryRepository(
             Storage.APP -> contentGate.withLock { app.moveIn(temp, doc.location) }
             Storage.EXTERNAL -> external.overwrite(Uri.parse(doc.location), temp)
         }
-        val next = doc.copy(sizeBytes = size)
+        val next = doc.copy(sizeBytes = size, modifiedAt = fileTime(doc))
         dao.update(next)
         next
     }

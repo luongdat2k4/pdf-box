@@ -41,6 +41,7 @@ function run(fn: (f: FileMeta) => unknown) {
       <div class="flex justify-between"><dt class="text-ink/55">{{ t('file.size') }}</dt><dd class="font-medium">{{ formatSize(details.size) }}</dd></div>
       <div class="flex justify-between"><dt class="text-ink/55">{{ t('file.type') }}</dt><dd class="font-medium uppercase">{{ details.kind }}</dd></div>
       <div class="flex justify-between"><dt class="text-ink/55">{{ t('file.added') }}</dt><dd class="font-medium">{{ formatDate(details.addedAt) }}</dd></div>
+      <div class="flex justify-between"><dt class="text-ink/55">{{ t('file.modified') }}</dt><dd class="font-medium">{{ details.modifiedAt ? formatDate(details.modifiedAt) : '—' }}</dd></div>
     </dl>
   </BottomSheet>
 </template>

@@ -155,6 +155,7 @@ CREATE TABLE document (
   last_zoom       REAL,
   last_opened_at  INTEGER,                    -- epoch mili giây
   added_at        INTEGER NOT NULL,
+  modified_at     INTEGER, -- thời gian sửa đổi thực tế của file; NULL nếu nguồn không cung cấp
   UNIQUE (storage, location)
 );
 CREATE INDEX idx_doc_recent ON document(last_opened_at DESC);

@@ -5,6 +5,7 @@ import android.content.Intent
 import android.net.Uri
 import android.provider.DocumentsContract
 import android.provider.OpenableColumns
+import android.provider.MediaStore
 import android.os.Environment
 import android.media.MediaScannerConnection
 import android.system.ErrnoException
@@ -34,7 +35,22 @@ class ExternalContentStore(private val context: Context) {
         }
     }
 
-    data class Info(val name: String, val sizeBytes: Long?, val mimeType: String?)
+    data class Info(val name: String, val sizeBytes: Long?, val mimeType: String?, val modifiedAt: Long? = null)
+
+    /** SAF reports milliseconds; MediaStore reports seconds. Never substitute the database insertion time. */
+    fun modifiedAt(uri: Uri): Long? {
+        requireDeviceAccess(uri)
+        localFile(uri)?.let { return it.lastModified().takeIf { time -> time > 0 } }
+        val media = uri.authority == MediaStore.AUTHORITY && !DocumentsContract.isDocumentUri(context, uri)
+        val column = if (media) MediaStore.MediaColumns.DATE_MODIFIED else DocumentsContract.Document.COLUMN_LAST_MODIFIED
+        return try {
+            resolver.query(uri, arrayOf(column), null, null, null)?.use { cursor ->
+                val index = cursor.getColumnIndex(column)
+                if (!cursor.moveToFirst() || index < 0 || cursor.isNull(index)) null
+                else cursor.getLong(index).takeIf { it > 0 }?.let { if (media) Math.multiplyExact(it, 1000L) else it }
+            }
+        } catch (_: Exception) { null } // Unsupported metadata or a temporarily inaccessible provider.
+    }
 
     data class RangeRead(val bytes: ByteArray, val totalSize: Long?)
 
@@ -96,7 +112,7 @@ class ExternalContentStore(private val context: Context) {
                     val sizeIdx = c.getColumnIndex(OpenableColumns.SIZE)
                     val name = if (nameIdx >= 0 && !c.isNull(nameIdx)) c.getString(nameIdx) else null
                     val size = if (sizeIdx >= 0 && !c.isNull(sizeIdx)) c.getLong(sizeIdx) else null
-                    return Info(name ?: fallbackName(uri), size, resolver.getType(uri))
+                    return Info(name ?: fallbackName(uri), size, resolver.getType(uri), modifiedAt(uri))
                 }
             }
         } catch (e: SecurityException) {
@@ -104,7 +120,7 @@ class ExternalContentStore(private val context: Context) {
         } catch (e: IllegalArgumentException) {
             throw notFound("File $uri")
         }
-        return Info(fallbackName(uri), null, resolver.getType(uri))
+        return Info(fallbackName(uri), null, resolver.getType(uri), modifiedAt(uri))
     }
 
     private fun fallbackName(uri: Uri) = uri.lastPathSegment?.substringAfterLast('/') ?: "file"

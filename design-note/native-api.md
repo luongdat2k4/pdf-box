@@ -94,6 +94,7 @@ interface DocumentRecord {
   lastZoom: number | null
   lastOpenedAt: number | null
   addedAt: number
+  modifiedAt: number | null // thời gian sửa đổi gốc của file, epoch milliseconds
 }
 
 type DocumentPatch = Partial<Pick<DocumentRecord,
@@ -195,6 +196,7 @@ Giữ các bất biến ở [`schema.md`](schema.md) mục "Tổng quan cấu tr
 - **Luồng:** mọi lệnh chạy ngoài luồng chính (`Dispatchers.IO`).
 - **Đồng thời:** các lệnh ghi cùng một `id` xếp hàng, tránh hai lần lưu chú thích chồng nhau.
 - **Số phiên bản:** dùng cơ chế migration của Room, thay cho khóa `schemaVersion` đã đề xuất cho `idb-keyval`.
+- **Thời gian file (v2):** `modified_at` lưu thời gian sửa đổi thực tế của file, không lấy `added_at` để sắp xếp. File thường dùng `File.lastModified()`, SAF dùng `COLUMN_LAST_MODIFIED` (milliseconds), MediaStore dùng `DATE_MODIFIED` (seconds, đổi sang milliseconds). Migration 1 → 2 giữ nguyên dữ liệu; lúc tải thư viện native đọc lại thời gian từ file và cập nhật bản ghi. Không có thời gian thì để `NULL` và xếp cuối. Bản sao mới nhập giữ thời gian nguồn khi nguồn cung cấp; với bản sao cũ đã mất liên kết nguồn chỉ đọc được thời gian của bản sao hiện tồn tại.
 
 ## 5. Dữ liệu nhị phân
 
@@ -248,7 +250,7 @@ Mã nằm ở `App/android/app/src/main/kotlin/vn/alf/pdftoolbox/library/`. Plug
 | `bridge/Json.kt` | Chuyển đổi giữa mô hình native và JSON (ghi `null` bằng `JSONObject.NULL`, vì `put(key, null)` sẽ **xóa** khóa) |
 | `LibraryRepository.kt` | **Toàn bộ logic**: nhập, tạo, thay nội dung, đọc khúc, xóa, xuất, chia sẻ, cài đặt, dọn mồ côi |
 | `LibraryServices.kt` | Bản duy nhất (singleton) của DB, DataStore, phiên ghi |
-| `db/` | Room: `AppDatabase` (phiên bản 1), `DocumentDao`, `Converters` |
+| `db/` | Room: `AppDatabase` (phiên bản 2, migration 1 → 2 thêm `modified_at` và chỉ mục), `DocumentDao`, `Converters` |
 | `model/` | `DocumentEntity`, `DocumentPatch`, `Settings`, `ErrorCode`, `Storage`, `ImportMode` |
 | `files/AppContentStore.kt` | Nội dung `app` trong `filesDir/documents/`; chặn đường dẫn thoát khỏi thư mục |
 | `files/ExternalContentStore.kt` | Nội dung `external` qua `content://`: giữ và nhả quyền, đọc theo đoạn, ghi đè, tạo trong thư mục |

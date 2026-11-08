@@ -12,7 +12,7 @@ function toRecord(m: FileMeta): DocumentRecord {
   return {
     id: m.id, storage: 'app', location: `idb:${m.id}`, displayName: m.name, mimeType: m.mime,
     sizeBytes: m.size, pageCount: m.pageCount ?? null, isEncrypted: m.isEncrypted ?? false, isFavorite: m.favorite,
-    lastPage: m.lastPage ?? 0, lastZoom: m.lastZoom ?? null, lastOpenedAt: m.openedAt, addedAt: m.addedAt,
+    lastPage: m.lastPage ?? 0, lastZoom: m.lastZoom ?? null, lastOpenedAt: m.openedAt, addedAt: m.addedAt, modifiedAt: m.modifiedAt ?? null,
   }
 }
 
@@ -59,7 +59,7 @@ async function store(name: string, mimeType: string, data: Blob): Promise<Docume
   if (!kind) throw Object.assign(new Error(`Unsupported file type: ${name}`), { code: 'UNSUPPORTED_TYPE' })
   const meta: FileMeta = {
     id: crypto.randomUUID(), name, kind, size: data.size, mime: mimeType || data.type || 'application/octet-stream',
-    addedAt: Date.now(), openedAt: null, favorite: false,
+    addedAt: Date.now(), modifiedAt: typeof File !== 'undefined' && data instanceof File ? data.lastModified || null : Date.now(), openedAt: null, favorite: false,
     lastPage: 0, lastZoom: null, pageCount: null, isEncrypted: false,
   }
   await db.putFile(meta, data)
@@ -115,6 +115,7 @@ export const mockApi: NativeApi = {
   async replaceContent(id, data) {
     const m = await metaOf(id)
     m.size = data.size
+    m.modifiedAt = Date.now()
     await db.putFile(m, data)
     return toRecord(m)
   },

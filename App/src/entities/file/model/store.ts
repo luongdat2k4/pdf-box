@@ -14,7 +14,7 @@ function toMeta(r: DocumentRecord): FileMeta | null {
   if (!kind) return null
   return {
     id: r.id, name: r.displayName, kind, size: r.sizeBytes ?? 0, mime: r.mimeType,
-    addedAt: r.addedAt, openedAt: r.lastOpenedAt, favorite: r.isFavorite,
+    addedAt: r.addedAt, modifiedAt: r.modifiedAt ?? null, openedAt: r.lastOpenedAt, favorite: r.isFavorite,
     lastPage: r.lastPage, lastZoom: r.lastZoom, pageCount: r.pageCount, isEncrypted: r.isEncrypted,
   }
 }
@@ -23,9 +23,9 @@ function toMetas(rs: DocumentRecord[]): FileMeta[] {
   return rs.map(toMeta).filter((m): m is FileMeta => m !== null)
 }
 
-/** Keep the same newest-first order after loading, importing and receiving files from another app. */
+/** Sort by the actual file date. Insertion time must never make an old file appear new. */
 function newestFirst(files: FileMeta[]): FileMeta[] {
-  return files.sort((a, b) => b.addedAt - a.addedAt)
+  return files.sort((a, b) => (b.modifiedAt ?? 0) - (a.modifiedAt ?? 0) || a.id.localeCompare(b.id))
 }
 
 export const useLibrary = defineStore('library', () => {
@@ -83,8 +83,10 @@ export const useLibrary = defineStore('library', () => {
     const next = toMeta(r)
     const m = find(r.id)
     if (next && m) {
+      const timeChanged = next.modifiedAt !== m.modifiedAt
       if (next.name !== m.name || next.mime !== m.mime || next.kind !== m.kind) searchRevision.value++
       Object.assign(m, next)
+      if (timeChanged) items.value = newestFirst([...items.value])
     }
   }
 

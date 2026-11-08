@@ -96,6 +96,7 @@
   "file.renameTitle": "Đổi tên tệp",
   "file.deleteTitle": "Xóa tệp?",
   "file.deleteMsg": "\"{name}\" sẽ bị xóa vĩnh viễn khỏi thiết bị và thư viện. Không thể hoàn tác.",
+  "file.modified": "Sửa đổi tệp",
   "file.deleteDenied": "Không thể xóa một số tệp. Hãy cấp quyền ghi hoặc xóa bằng trình quản lý tệp của máy. Các tệp chưa xóa được vẫn được giữ trong thư viện.",
   "file.deleted": "Đã xóa",
   "file.savedTo": "Đã lưu: {where}",

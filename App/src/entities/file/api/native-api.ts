@@ -17,6 +17,8 @@ export interface DocumentRecord {
   lastZoom: number | null
   lastOpenedAt: number | null
   addedAt: number
+  /** Original file modification time in milliseconds; unknown when the provider omits it. */
+  modifiedAt: number | null
 }
 
 export type DocumentPatch = Partial<

@@ -9,8 +9,8 @@ import vn.alf.pdftoolbox.library.model.Storage
 
 @Dao
 interface DocumentDao {
-    /** Newest first, matching how the WebView's Home tab sorts. */
-    @Query("SELECT * FROM document ORDER BY added_at DESC")
+    /** Actual file dates first; unknown dates sort last. */
+    @Query("SELECT * FROM document ORDER BY modified_at DESC, id ASC")
     suspend fun getAll(): List<DocumentEntity>
 
     @Query("SELECT * FROM document WHERE id = :id")

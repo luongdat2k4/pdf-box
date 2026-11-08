@@ -7,6 +7,7 @@ export interface FileMeta {
   size: number
   mime: string
   addedAt: number
+  modifiedAt: number | null
   openedAt: number | null
   favorite: boolean
   /** Reading position, restored when a PDF or PowerPoint file is reopened. */

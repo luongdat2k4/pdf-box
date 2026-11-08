@@ -57,7 +57,7 @@ class DeviceStorage(private val context: Context) {
                     pending.add(child)
                 } else if (child.isFile && child.canRead() && filter.allows(child.name)) {
                     val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", child)
-                    visit(uri, ExternalContentStore.Info(child.name, child.length(), MimeTypes.resolve(null, child.name)))
+                    visit(uri, ExternalContentStore.Info(child.name, child.length(), MimeTypes.resolve(null, child.name), child.lastModified().takeIf { it > 0 }))
                     count++
                 }
             }

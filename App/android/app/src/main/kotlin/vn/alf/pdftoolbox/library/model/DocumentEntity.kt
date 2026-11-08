@@ -18,6 +18,7 @@ import androidx.room.PrimaryKey
         Index(value = ["storage", "location"], unique = true, name = "idx_doc_storage_location"),
         // History tab: most recently opened first.
         Index(value = ["last_opened_at"], orders = [Index.Order.DESC], name = "idx_doc_recent"),
+        Index(value = ["modified_at"], orders = [Index.Order.DESC], name = "idx_doc_modified"),
     ],
 )
 data class DocumentEntity(
@@ -39,4 +40,6 @@ data class DocumentEntity(
     @ColumnInfo(name = "last_opened_at") val lastOpenedAt: Long?,
     /** Epoch milliseconds. */
     @ColumnInfo(name = "added_at") val addedAt: Long,
+    /** Actual file modification time, in epoch milliseconds; null if the provider does not report it. */
+    @ColumnInfo(name = "modified_at") val modifiedAt: Long? = null,
 )
