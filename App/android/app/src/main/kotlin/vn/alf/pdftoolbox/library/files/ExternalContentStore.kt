@@ -5,6 +5,11 @@ import android.content.Intent
 import android.net.Uri
 import android.provider.DocumentsContract
 import android.provider.OpenableColumns
+import android.os.Environment
+import android.media.MediaScannerConnection
+import android.system.ErrnoException
+import android.system.Os
+import android.system.OsConstants
 import java.io.File
 import java.io.FileInputStream
 import java.io.FileNotFoundException
@@ -32,6 +37,54 @@ class ExternalContentStore(private val context: Context) {
     data class Info(val name: String, val sizeBytes: Long?, val mimeType: String?)
 
     data class RangeRead(val bytes: ByteArray, val totalSize: Long?)
+
+    /** Resolve only this app's shared-storage FileProvider roots, for filesystem observation. */
+    @Suppress("DEPRECATION")
+    fun localFile(uri: Uri): File? {
+        if (uri.authority != "${context.packageName}.fileprovider") return null
+        val parts = uri.pathSegments
+        val root = when (parts.firstOrNull()) {
+            "my_images" -> Environment.getExternalStorageDirectory()
+            "shared_storage" -> File("/storage")
+            else -> return null
+        }.canonicalFile
+        val file = File(root, parts.drop(1).joinToString("/")).canonicalFile
+        return file.takeIf { it.path.startsWith(root.path + File.separator) }
+    }
+
+    /** Permission loss, an offline provider or an unmounted SD card is not evidence of deletion. */
+    fun isMissing(uri: Uri): Boolean = try {
+        requireDeviceAccess(uri)
+        val file = localFile(uri)
+        if (file != null) {
+            val state = Environment.getExternalStorageState(file)
+            if (state != Environment.MEDIA_MOUNTED && state != Environment.MEDIA_MOUNTED_READ_ONLY) false
+            else try { Os.stat(file.path); false } catch (e: ErrnoException) { e.errno == OsConstants.ENOENT }
+        } else {
+            resolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)?.use { !it.moveToFirst() } ?: false
+        }
+    } catch (_: Exception) { false }
+
+    /** Delete the actual document. Never silently turn a failed deletion into removal from the library. */
+    fun delete(uri: Uri) {
+        requireDeviceAccess(uri)
+        if (isMissing(uri)) return
+        try {
+            val deleted = if (DocumentsContract.isDocumentUri(context, uri)) {
+                DocumentsContract.deleteDocument(resolver, uri)
+            } else resolver.delete(uri, null, null) > 0
+            if (!deleted && !isMissing(uri)) throw LibraryException(ErrorCode.IO_ERROR, "Could not delete the file")
+            localFile(uri)?.let { file ->
+                MediaScannerConnection.scanFile(context, arrayOf(file.path), null, null)
+            }
+        } catch (e: SecurityException) {
+            throw LibraryException(ErrorCode.NO_WRITE_PERMISSION, "No permission to delete this file", e)
+        } catch (e: FileNotFoundException) {
+            if (!isMissing(uri)) throw LibraryException(ErrorCode.IO_ERROR, "Could not delete the file", e)
+        } catch (e: UnsupportedOperationException) {
+            throw LibraryException(ErrorCode.NO_WRITE_PERMISSION, "This file provider does not allow deletion", e)
+        }
+    }
 
     /** Name, size and type as reported by the provider. */
     fun describe(uri: Uri): Info {

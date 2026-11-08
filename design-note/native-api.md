@@ -74,7 +74,7 @@ Home (`/`, alias `/home`) dùng thêm ba lệnh của plugin `Library`:
 - `DeviceStorage` quét bộ nhớ dùng chung và các volume gắn ngoài mà Android cho truy cập, bỏ qua thư mục bị bảo vệ như Android/data và Android/obb. Kiểm tra quyền và hủy coroutine trong lúc quét. Chỉ đọc metadata của file có đuôi do WebView truyền xuống.
 - File tìm thấy được lưu với `storage = external`, `location` là `content://` URI do FileProvider của app cấp cho file gốc trên bộ nhớ dùng chung. Không sao chép nội dung, không giữ quyền URI riêng từng file. Quyền đọc phụ thuộc quyền bộ nhớ của app; khi thu hồi quyền thì trả `PERMISSION_LOST`.
 - Quét lại khi vào Home, khi app trở lại foreground ở Home, hoặc nhấn “Quét lại”. Các yêu cầu đồng thời dùng chung một lượt quét. URI đã có được dùng lại, giữ ID, yêu thích và tiến độ đọc.
-- Quét không xóa các dòng cũ: file đã bị xóa/di chuyển vẫn tuân theo xử lý `NOT_FOUND` khi mở. Nhập file thủ công bằng SAF và cài đặt thư mục lưu hoạt động riêng.
+- `LibraryWatcher` đối chiếu file đã bị xóa/di chuyển và gửi `documentsRemoved` cho WebView. Theo dõi bằng FileObserver/ContentObserver ở foreground, đối chiếu lại khi resume và mỗi 30 giây nếu provider bỏ lỡ thông báo. Mất quyền hoặc tháo thẻ nhớ không được coi là xóa file.
 - Trình duyệt dev giữ hành vi nhập file hiện tại, không xin quyền bộ nhớ. Cần kiểm chứng cấp/từ chối/thu hồi quyền, khởi động lại và quét trên Android thật.
 
 Viết bằng TypeScript để làm chuẩn. Phía Kotlin cài đặt đúng từng lệnh này. Tên trường dùng camelCase; cột SQLite vẫn là snake_case trong [`schema.md`](schema.md).
@@ -190,7 +190,7 @@ Mọi lệnh có thể từ chối (reject) với một mã cố định, để 
 Giữ các bất biến ở [`schema.md`](schema.md) mục "Tổng quan cấu trúc":
 
 - **Tạo:** ghi nội dung trước, rồi thêm dòng `document` (trong một giao dịch Room cho phần metadata).
-- **Xóa:** xóa dòng `document` trước, nội dung sau. Với `external` **chỉ xóa dòng và nhả quyền URI**, không đụng file gốc của người dùng.
+- **Xóa:** xóa file thật trước cho cả `app` và `external`, rồi xóa dòng `document` và nhả quyền URI riêng. Khi không xóa được file, giữ bản ghi và báo lỗi. Native gửi các ID đã xóa qua `documentsRemoved`, kể cả khi một file sau đó thất bại.
 - **Khởi động:** dọn nội dung mồ côi trong `filesDir/documents/`.
 - **Luồng:** mọi lệnh chạy ngoài luồng chính (`Dispatchers.IO`).
 - **Đồng thời:** các lệnh ghi cùng một `id` xếp hàng, tránh hai lần lưu chú thích chồng nhau.
@@ -257,9 +257,9 @@ Mã nằm ở `App/android/app/src/main/kotlin/vn/alf/pdftoolbox/library/`. Plug
 
 Quy tắc đã được cài đặt đúng như mục 4:
 
-- **Thứ tự và an toàn khi bị ngắt:** tạo thì ghi nội dung rồi mới thêm dòng; xóa thì xóa dòng rồi mới xóa nội dung. Một khóa (`contentGate`) bao quanh cặp "đặt file vào chỗ + thêm dòng" và quá trình dọn mồ côi, để dọn dẹp không xóa nhầm file vừa tới.
+- **Thứ tự và an toàn khi bị ngắt:** tạo thì ghi nội dung rồi mới thêm dòng; xóa thì xóa file rồi mới xóa dòng. Bản ghi trỏ tới file đã mất được đối chiếu bởi `LibraryWatcher`. `contentGate` bảo vệ cặp tạo file/bản ghi và dọn mồ côi; `scanGate` bảo vệ quét, xóa và đối chiếu file mất.
 - **Thay nội dung `app`:** ghi ra file tạm rồi đổi tên (nguyên tử trên cùng hệ thống file). **Với `external` không nguyên tử được**: dùng chế độ `"wt"` (ghi và cắt bớt) để PDF ngắn hơn không còn đuôi cũ, nhưng nếu ngắt giữa chừng thì file đích bị cắt dở.
-- **Xóa `external`:** chỉ nhả quyền URI đã giữ riêng. File nằm trong thư mục người dùng đã cấp quyền cả cây **không** có quyền riêng nên không bị nhả; quyền thư mục cũng **không** bị nhả khi đổi thư mục, vì các file đã lưu ở đó sẽ mất truy cập.
+- **Xóa `external`:** dùng `DocumentsContract.deleteDocument` cho SAF hoặc `ContentResolver.delete` cho các URI khác; cần quyền ghi/xóa của provider. Không nhả quyền thư mục chung. Với file nhập theo chế độ `copy`, chỉ xóa bản sao do app quản lý; file nguồn độc lập không nằm trong bản ghi.
 - **Cùng một `id`:** các lệnh ghi xếp hàng bằng khóa theo `id`.
 - **Chặn đường dẫn:** `location` của file `app` được kiểm tra, từ chối `..`, đường dẫn tuyệt đối, thư mục con; đuôi file lấy từ tên hiển thị chỉ được gồm `a-z0-9`, tối đa 10 ký tự.
 - **Dọn mồ côi:** chạy một lần mỗi khi plugin tải, ở luồng nền, không chặn khởi động; thêm xóa file tạm bị bỏ quên quá một ngày.

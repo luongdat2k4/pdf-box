@@ -1,37 +1,17 @@
-# 15. Xóa file
+﻿# 15. Xóa file và đồng bộ thư viện
 
-> Phần chung: xem [README](README.md) và [`native-api.md`](../native-api.md). Chức năng này **trả lời câu hỏi mở về xóa** của `schema.md` cho file `app`.
+Hai đường vào dùng chung `useLibrary().remove(ids)`: menu từng file và màn `/tool/delete`.
 
-## Hiện trạng
+- Hộp xác nhận nêu rõ file sẽ bị xóa vĩnh viễn khỏi thiết bị và thư viện.
+- Native xóa nội dung thật trước, rồi mới xóa bản ghi. `app` xóa file riêng của app; `external` xóa URI gốc bằng SAF hoặc ContentResolver.
+- Nếu thiếu quyền hoặc provider từ chối xóa, file và bản ghi được giữ lại; UI hiển thị lỗi.
+- Khi xóa nhiều file, các file đã xóa thành công vẫn biến mất ngay cả khi file sau đó thất bại. Native gửi `documentsRemoved` theo nhóm; frontend tải lại kết quả thực tế khi có lỗi.
+- File nhập bằng chế độ `copy` là bản sao độc lập: xóa bản sao trong app không xóa file nguồn không được liên kết.
 
-Hai đường vào, cùng gọi `useLibrary().remove(ids)`:
+`LibraryWatcher` theo dõi thư mục chứa file đã lập chỉ mục bằng `FileObserver` và content provider bằng `ContentObserver`. Khi phát hiện xóa/di chuyển, native đối chiếu sự tồn tại và gửi `documentsRemoved`; Pinia cập nhật danh sách chung, lịch sử, yêu thích và vùng chọn mà không cần tải lại trang.
 
-| Đường | Code | Xác nhận |
-|-------|------|----------|
-| Màn xóa nhiều file, route `/tool/delete` | `App/src/features/delete-files/ui/DeleteFiles.vue` | "N file(s) will be permanently removed. This can't be undone." |
-| Mục Delete trong menu từng file | `useFileActions().remove` (`App/src/entities/file/model/use-file-actions.ts`) | "… will be permanently removed from the library." |
+Việc theo dõi dừng khi app ở background, chạy lại và đối chiếu khi trở về foreground. Có đối chiếu dự phòng mỗi 30 giây ở foreground cho provider không phát thông báo. Mất quyền truy cập, provider không truy vấn được hoặc tháo thẻ nhớ không phải bằng chứng file bị xóa.
 
-`remove` xóa Blob rồi xóa metadata (`removeFile`, `App/src/entities/file/api/db.ts`) và loại khỏi danh sách trong bộ nhớ. Hiện xóa khỏi thư viện **đồng nghĩa với xóa luôn nội dung**, vì nội dung chỉ tồn tại trong kho của app.
+Quét, xóa và đối chiếu dùng chung `scanGate`; thao tác trên từng tài liệu dùng chung khóa ID. Frontend bỏ phản hồi tải danh sách cũ và không đưa ID đã xóa trở lại do phản hồi đến muộn.
 
-## Dữ liệu (`document`)
-
-- **Xóa** dòng `document`.
-- Với `storage = 'app'`: xóa cả nội dung.
-- Với `storage = 'external'`: **chỉ xóa dòng và nhả quyền URI**, file gốc của người dùng còn nguyên.
-- Không có bảng phụ phải dọn (không có `bookmark`, `annotation` trong schema tối giản).
-
-## Thay đổi cần làm
-
-1. `remove` gọi `removeDocuments(ids)` của native. Native làm trong một luồng: xóa dòng `document` (giao dịch Room) **trước**, rồi xóa nội dung `app`. Thứ tự này đảo ngược với code hiện tại, để lỡ bị ngắt giữa chừng chỉ còn file mồ côi (vô hại) chứ không còn dòng trỏ vào nội dung đã mất.
-2. **Dọn file mồ côi** lúc khởi động: nội dung trong `filesDir/documents/` không có dòng `document` thì xóa (phía native).
-3. **Câu xác nhận phải khác nhau theo `storage`**:
-   - `app`: "Sẽ bị xóa vĩnh viễn, không thể hoàn tác."
-   - `external`: "Chỉ xóa khỏi danh sách, file gốc vẫn còn trên thiết bị."
-   Khi xóa nhiều file lẫn cả hai loại, hiển thị số lượng từng loại.
-4. Giao diện chỉ cập nhật danh sách trong Pinia sau khi native báo thành công.
-
-## Rủi ro và câu hỏi mở
-
-- Không có thùng rác (schema tối giản bỏ `deleted_at`). Xóa nhầm file `app` là mất. Có muốn thêm thùng rác không?
-- Nếu muốn thêm lựa chọn "xóa cả file gốc" với `external`, việc xóa file người dùng đòi hỏi quyền ghi và xác nhận rất rõ; mặc định **không** làm.
-- Xóa file là nguồn của file khác (ví dụ ảnh dùng để tạo PDF) không ảnh hưởng gì vì không có liên kết nguồn.
+Kiểm tra hồi quy: `npm run test:library`. Trên thiết bị cần kiểm tra xóa file thường, SAF, file không có quyền ghi, xóa nhiều file thất bại một phần, xóa từ trình quản lý tệp và tháo/lắp thẻ nhớ.

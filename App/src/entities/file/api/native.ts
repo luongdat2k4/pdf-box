@@ -28,6 +28,7 @@ interface LibraryPlugin {
   setSettings(o: Partial<Settings>): Promise<Settings>
   pickSaveFolder(): Promise<Settings>
   addListener(event: 'documentOpened', cb: (e: OpenedEvent) => void): Promise<PluginListenerHandle>
+  addListener(event: 'documentsRemoved', cb: (e: { ids: string[] }) => void): Promise<PluginListenerHandle>
 }
 
 const Library = registerPlugin<LibraryPlugin>('Library')
@@ -153,6 +154,10 @@ export const nativeApi: NativeApi = {
 
   async onDocumentOpened(cb) {
     const handle = await Library.addListener('documentOpened', cb)
+    return () => void handle.remove()
+  },
+  async onDocumentsRemoved(cb) {
+    const handle = await Library.addListener('documentsRemoved', ({ ids }) => cb(ids))
     return () => void handle.remove()
   },
 }

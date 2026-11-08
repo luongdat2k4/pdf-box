@@ -30,6 +30,8 @@ export const useLibrary = defineStore('library', () => {
   const libraryAccess = ref({ hasAccess: false, prompted: true })
   const scanning = ref(false)
   let scanPending: Promise<void> | undefined
+  const deletedIds = new Set<string>()
+  let loadSequence = 0
 
   /** Serialises Home entry, resume and manual refresh so only one permission request/scan can be active. */
   function syncDeviceFiles(requestAccess = false): Promise<void> {
@@ -57,9 +59,19 @@ export const useLibrary = defineStore('library', () => {
   }
 
   async function load() {
-    items.value = toMetas(await api.listDocuments()).sort((a, b) => b.addedAt - a.addedAt)
+    const sequence = ++loadSequence
+    const records = await api.listDocuments()
+    if (sequence !== loadSequence) return
+    items.value = toMetas(records).filter(file => !deletedIds.has(file.id)).sort((a, b) => b.addedAt - a.addedAt)
     loaded.value = true
   }
+
+  function forget(ids: string[]) {
+    ids.forEach(id => deletedIds.add(id))
+    items.value = items.value.filter(file => !deletedIds.has(file.id))
+  }
+
+  function watchRemovals() { return api.onDocumentsRemoved(forget) }
 
   /** Applies a record returned by the native side to the list item it describes. */
   function apply(r: DocumentRecord) {
@@ -164,6 +176,7 @@ export const useLibrary = defineStore('library', () => {
 
   /** Takes in a record the native side created on its own (a file opened from another app). */
   function adopt(r: DocumentRecord): FileMeta | null {
+    if (deletedIds.has(r.id)) return null
     const meta = toMeta(r)
     if (!meta) return null
     const existing = find(meta.id)
@@ -188,14 +201,20 @@ export const useLibrary = defineStore('library', () => {
   }
 
   async function remove(ids: string[]) {
-    await api.removeDocuments(ids)
-    const removed = new Set(ids)
-    items.value = items.value.filter((f) => !removed.has(f.id))
+    const requested = [...new Set(ids)]
+    try {
+      await api.removeDocuments(requested)
+      forget(requested)
+    } catch (e) {
+      // Earlier files in a batch may already be gone; preserve the actual native result on screen.
+      await load().catch(() => {})
+      throw e
+    }
   }
 
   return {
     items, loaded, all, recent, favorites, byKind, pdfs, images, documents, searchRevision, libraryAccess, scanning, syncDeviceFiles,
     load, find, addBlob, importFiles, importFromDevice, blobOf, bytesOf, touch, toggleFavorite, rename, replaceBlob, remove,
-    saveProgress, adopt,
+    saveProgress, adopt, watchRemovals,
   }
 })

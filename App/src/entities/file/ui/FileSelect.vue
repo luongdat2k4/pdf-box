@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { t } from '@/shared/i18n'
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import FileRow from './FileRow.vue'
 import { Ic, toast, VirtualList } from '@/shared/ui'
 import { errorMessage } from '@/shared/lib/error'
@@ -28,6 +28,11 @@ const query = ref('')
 
 const { results: shown, searching } = useFileSearch(() => props.files, query, () => lib.searchRevision, true)
 const selection = computed(() => new Map(props.modelValue.map((id, index) => [id, index + 1])))
+watch(() => props.files, files => {
+  const available = new Set(files.map(file => file.id))
+  const remaining = props.modelValue.filter(id => available.has(id))
+  if (remaining.length !== props.modelValue.length) emit('update:modelValue', remaining)
+})
 
 function toggle(id: string) {
   const cur = props.modelValue

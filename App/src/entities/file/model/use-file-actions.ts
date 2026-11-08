@@ -4,6 +4,7 @@ import { t } from '@/shared/i18n'
 import { api } from '../api/native-api'
 import { useLibrary } from './store'
 import type { FileMeta } from './types'
+import { deletionErrorMessage } from '../lib/deletion-error'
 
 /** User-level actions on a library file; every one reports its own success/failure toast. */
 export function useFileActions() {
@@ -35,8 +36,13 @@ export function useFileActions() {
   async function remove(f: FileMeta): Promise<boolean> {
     const ok = await askConfirm(t('file.deleteTitle'), t('file.deleteMsg', { name: f.name }), t('common.delete'), true)
     if (ok) {
-      await lib.remove([f.id])
-      toast(t('file.deleted'))
+      try {
+        await lib.remove([f.id])
+        toast(t('file.deleted'))
+      } catch (e) {
+        toast(deletionErrorMessage(e), true)
+        return false
+      }
     }
     return ok
   }

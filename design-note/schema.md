@@ -58,7 +58,7 @@ Trong tầng bền chỉ có **một bảng** `document`.
 - Mỗi `document` có **đúng một** nội dung (mục B), nối bằng `location`. Với `external`, "nội dung" là file của người dùng mà app chỉ giữ link.
 - Giữ đúng khi bị ngắt giữa chừng:
   - **Tạo:** ghi **nội dung trước**, dòng `document` sau. Hỏng ở giữa thì chỉ còn nội dung mồ côi (vô hại, dọn được).
-  - **Xóa:** xóa **dòng `document` trước**, nội dung sau. Với `external` **chỉ xóa dòng và nhả quyền URI, không đụng file gốc**. Code hiện tại xóa theo thứ tự ngược lại (`removeFile`), cần đổi.
+  - **Xóa:** xóa file thật trước cho cả `app` và `external`, rồi xóa dòng `document` và nhả quyền URI riêng. Khi không xóa được file, giữ bản ghi và báo lỗi. `LibraryWatcher` đối chiếu file đã mất sau khi app bị ngắt hoặc file bị xóa bên ngoài.
 - **Dọn mồ côi** khi khởi động: nội dung `app` không có `document` thì xóa.
 - Nội dung có thể đổi tại chỗ mà `location` giữ nguyên (lưu chú thích); khi đó chỉ `size_bytes` đổi.
 
@@ -202,7 +202,7 @@ Chi tiết: [`features/07-pdf-annotate.md`](features/07-pdf-annotate.md).
 - **Chưa chạy trên Android thật** (README của app ghi rõ), trong khi kiến trúc này đặt phần quan trọng nhất lên tầng native. Cần kiểm thử trên máy thật từ giai đoạn đầu.
 - **Mất file `app` khi gỡ app** hoặc xóa dữ liệu. Cần nút xuất và lời nhắc.
 - **Link `external` hỏng hoặc mất quyền.** Giao diện phải xử lý `NOT_FOUND`, `PERMISSION_LOST` mà không làm hỏng danh sách.
-- **Xóa tài liệu `app` là xóa luôn nội dung;** `external` chỉ bỏ link.
+- **Xóa tài liệu `app` và `external` đều xóa nội dung thật.** File nhập theo chế độ sao chép chỉ xóa bản sao do app quản lý; nguồn không thuộc bản ghi vẫn độc lập.
 - **Chuyển dữ liệu nhị phân** giữa WebView và native chưa đo; xem [`native-api.md`](native-api.md) mục 5.
 - **Ảnh quét nháp** chưa xuất chỉ nằm trong bộ nhớ, không vào DB. Chỉ lưu nếu muốn tiếp tục phiên quét dở sau khi tắt app.
 - **Bộ nhớ:** công cụ ghép đọc toàn bộ byte của mọi file nguồn cùng lúc; PDF lớn có thể gây áp lực trong WebView. Chưa đo.

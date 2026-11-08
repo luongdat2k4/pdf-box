@@ -67,6 +67,8 @@ export interface NativeApi {
 
   /** Called for each "Open with" request, including one that launched the app. Returns an unsubscribe function. */
   onDocumentOpened(cb: (e: OpenedEvent) => void): Promise<() => void>
+  /** Actual deletions made in the app or detected on device storage. */
+  onDocumentsRemoved(cb: (ids: string[]) => void): Promise<() => void>
 }
 
 export interface LibraryAccess {

@@ -36,6 +36,7 @@ import vn.alf.pdftoolbox.library.files.ExtensionFilter
 import vn.alf.pdftoolbox.library.files.FileNames
 import vn.alf.pdftoolbox.library.files.MimeTypes
 import vn.alf.pdftoolbox.library.files.WriteSessions
+import vn.alf.pdftoolbox.library.files.LibraryWatcher
 import vn.alf.pdftoolbox.library.model.DocumentEntity
 import vn.alf.pdftoolbox.library.model.ErrorCode
 import vn.alf.pdftoolbox.library.model.ImportMode
@@ -57,11 +58,13 @@ class LibraryPlugin : Plugin() {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private lateinit var repo: LibraryRepository
     private lateinit var sessions: WriteSessions
+    private lateinit var watcher: LibraryWatcher
 
     override fun load() {
         val services = LibraryServices.get(context)
         repo = services.repository
         sessions = services.writeSessions
+        watcher = LibraryWatcher(context, repo, scope, ::notifyRemoved)
         // A cold start through "Open with" carries the file in the launch intent.
         activity?.intent?.let { handleViewIntent(it) }
         // Housekeeping must never delay or break startup.
@@ -99,6 +102,7 @@ class LibraryPlugin : Plugin() {
             val event = JSObject()
             try {
                 val imported = repo.importPicked(listOf(PickedUri(uri, flags)), ExtensionFilter(emptyList()), ImportMode.LINK)
+                watcher.refresh()
                 imported.added.firstOrNull()?.let { event.put("document", it.toJson()) }
                 event.put("skipped", JSArray().also { array -> imported.skipped.forEach { array.put(it) } })
             } catch (e: CancellationException) {
@@ -115,10 +119,23 @@ class LibraryPlugin : Plugin() {
         scope.cancel()
     }
 
+    override fun handleOnResume() {
+        if (::watcher.isInitialized) watcher.resume()
+    }
+
+    override fun handleOnPause() {
+        if (::watcher.isInitialized) watcher.pause()
+    }
+
+    private fun notifyRemoved(ids: List<String>) {
+        notifyListeners("documentsRemoved", JSObject().put("ids", JSArray(ids)), true)
+    }
+
     // ---- library -------------------------------------------------------------------------------------------------
 
     @PluginMethod
     fun listDocuments(call: PluginCall) = launchCall(call) {
+        watcher.refresh()
         JSObject().put("documents", repo.list().toJsonArray())
     }
 
@@ -130,7 +147,19 @@ class LibraryPlugin : Plugin() {
 
     @PluginMethod
     fun removeDocuments(call: PluginCall) = launchCall(call) {
-        repo.remove(call.data.stringList("ids"))
+        val removed = mutableListOf<String>()
+        try {
+            repo.remove(call.data.stringList("ids")) { id ->
+                removed += id
+                if (removed.size >= 32) {
+                    notifyRemoved(removed.toList())
+                    removed.clear()
+                }
+            }
+        } finally {
+            if (removed.isNotEmpty()) notifyRemoved(removed)
+            watcher.refresh()
+        }
         null
     }
 
@@ -440,6 +469,7 @@ class LibraryPlugin : Plugin() {
         scope.launch {
             try {
                 val result = block()
+                if (result?.has("document") == true || result?.has("added") == true) watcher.refresh()
                 when {
                     result === DEFERRED -> Unit
                     result == null -> call.resolve()

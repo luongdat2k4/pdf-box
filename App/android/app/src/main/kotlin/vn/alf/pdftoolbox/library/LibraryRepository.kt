@@ -54,7 +54,8 @@ data class ShareTarget(val uri: Uri, val mimeType: String, val name: String)
  *
  * Invariants kept here (design-note/schema.md "Quan he va bat bien"):
  * - Create: write the content first, then insert the row. A crash in between leaves only an orphan file.
- * - Delete: delete the row first, then the content. A crash in between leaves only an orphan file.
+ * - Delete: delete the content first; a failed deletion must leave the library entry intact.
+ *   Missing content after a crash is reconciled on resume and filesystem/provider notifications.
  * - Content and row for an app document appear together as far as orphan cleanup can tell ([contentGate]).
  * - Writes to the same document id are serialised.
  */
@@ -117,32 +118,63 @@ class LibraryRepository(
 
     /**
      * Removes documents. Missing ids are ignored, so calling this twice is harmless.
-     * `app` documents lose their file; `external` documents only lose the row and our permission:
-     * the user's own file is never touched.
+     * Both app and external documents lose their actual file before the row is removed.
+     * Successful deletions are reported individually, including when a later file fails.
      */
-    suspend fun remove(ids: List<String>) {
+    suspend fun remove(ids: List<String>, onRemoved: (String) -> Unit = {}) = scanGate.withLock {
         for (id in ids.distinct()) {
             locked(id) {
                 val doc = dao.get(id)
                 if (doc != null) {
-                    dao.deleteByIds(listOf(id)) // row first
-                    releaseContent(doc)
+                    when (doc.storage) {
+                        Storage.APP -> {
+                            if (!app.delete(doc.location) && app.exists(doc.location))
+                                throw LibraryException(ErrorCode.IO_ERROR, "Could not delete ${doc.displayName}")
+                        }
+                        Storage.EXTERNAL -> external.delete(Uri.parse(doc.location))
+                    }
+                    dao.deleteByIds(listOf(id))
+                    if (doc.storage == Storage.EXTERNAL) external.release(Uri.parse(doc.location))
                 }
+                onRemoved(id)
             }
-            locks.remove(id)
         }
     }
 
-    private fun releaseContent(doc: DocumentEntity) {
-        try {
-            when (doc.storage) {
-                Storage.APP -> app.delete(doc.location)
-                Storage.EXTERNAL -> external.release(Uri.parse(doc.location))
+    /** Only remove stale metadata when the underlying file is positively known to be gone. */
+    suspend fun pruneMissing(): List<String> = scanGate.withLock {
+        val removed = mutableListOf<String>()
+        for (entry in dao.getAll()) locked(entry.id) {
+            val doc = dao.get(entry.id) ?: return@locked
+            val missing = when (doc.storage) {
+                Storage.APP -> !app.exists(doc.location)
+                Storage.EXTERNAL -> external.isMissing(Uri.parse(doc.location))
             }
-        } catch (e: Exception) {
-            // The row is already gone. A leftover file is an orphan that startup cleanup will remove.
-            Log.w(TAG, "Could not release content of ${doc.id}", e)
+            if (missing) {
+                dao.deleteByIds(listOf(doc.id))
+                if (doc.storage == Storage.EXTERNAL) external.release(Uri.parse(doc.location))
+                removed += doc.id
+            }
         }
+        removed
+    }
+
+    suspend fun watchTargets(): Pair<Set<File>, Set<Uri>> {
+        val directories = mutableSetOf<File>()
+        val providers = mutableSetOf<Uri>()
+        for (doc in dao.getAll()) {
+            val file = when (doc.storage) {
+                Storage.APP -> app.resolve(doc.location)
+                Storage.EXTERNAL -> {
+                    val uri = Uri.parse(doc.location)
+                    val local = external.localFile(uri)
+                    if (local == null) providers += Uri.Builder().scheme("content").authority(uri.authority).build()
+                    local
+                }
+            }
+            file?.parentFile?.let { directories += it }
+        }
+        return directories to providers
     }
 
     // ---- import ----------------------------------------------------------------------------------------------

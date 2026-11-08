@@ -145,6 +145,7 @@ export const mockApi: NativeApi = {
   async onDocumentOpened() {
     return () => {} // nothing opens files from outside the browser tab
   },
+  async onDocumentsRemoved() { return () => {} },
   async pickSaveFolder() {
     throw Object.assign(new Error('Choosing a folder needs the Android app'), { code: 'INVALID_ARGUMENT' })
   },
