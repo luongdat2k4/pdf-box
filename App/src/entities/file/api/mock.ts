@@ -66,6 +66,11 @@ async function store(name: string, mimeType: string, data: Blob): Promise<Docume
 }
 
 export const mockApi: NativeApi = {
+  async getLibraryAccess() { return { hasAccess: false, prompted: true } },
+  async requestLibraryAccess() {
+    throw Object.assign(new Error('Device file access needs the Android app'), { code: 'INVALID_ARGUMENT' })
+  },
+  async scanLibrary() { return { count: 0 } },
   async listDocuments() {
     return (await db.listMeta()).map(toRecord)
   },

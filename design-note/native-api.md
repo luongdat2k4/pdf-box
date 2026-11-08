@@ -57,6 +57,24 @@ Chọn adapter bằng `isNative()` (`App/src/shared/lib/platform.ts`).
 
 ## 3. Hợp đồng
 
+### Tự tìm tài liệu trên Home
+
+Home (`/`, alias `/home`) dùng thêm ba lệnh của plugin `Library`:
+
+| Lệnh | Tham số | Kết quả |
+|------|---------|---------|
+| `getLibraryAccess` | — | `{ hasAccess: boolean, prompted: boolean }` |
+| `requestLibraryAccess` | — | Xin quyền bộ nhớ qua hệ thống rồi trả trạng thái thực tế như trên |
+| `scanLibrary` | `{ accept: string[] }` | `{ count: number }`, số file hỗ trợ tìm thấy |
+
+- Không yêu cầu chọn file hoặc thư mục. Lần đầu vào Home nếu chưa có quyền, app tự xin quyền. Android 11+ dùng `MANAGE_EXTERNAL_STORAGE`, mở màn hình `ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION`; Android 10 trở xuống dùng popup quyền bộ nhớ (manifest giới hạn quyền đọc/ghi đến API 29, Android 10 bật `requestLegacyExternalStorage`).
+- Không dựa vào `RESULT_OK` của Settings: kiểm tra `Environment.isExternalStorageManager()` khi quay lại. Từ chối quyền vẫn giữ thư viện và nút “Cấp quyền”, không tự hỏi liên tục. DataStore giữ `device_storage_prompted`, độc lập với `save_mode`/`save_folder_uri`.
+- `DeviceStorage` quét bộ nhớ dùng chung và các volume gắn ngoài mà Android cho truy cập, bỏ qua thư mục bị bảo vệ như Android/data và Android/obb. Kiểm tra quyền và hủy coroutine trong lúc quét. Chỉ đọc metadata của file có đuôi do WebView truyền xuống.
+- File tìm thấy được lưu với `storage = external`, `location` là `content://` URI do FileProvider của app cấp cho file gốc trên bộ nhớ dùng chung. Không sao chép nội dung, không giữ quyền URI riêng từng file. Quyền đọc phụ thuộc quyền bộ nhớ của app; khi thu hồi quyền thì trả `PERMISSION_LOST`.
+- Quét lại khi vào Home, khi app trở lại foreground ở Home, hoặc nhấn “Quét lại”. Các yêu cầu đồng thời dùng chung một lượt quét. URI đã có được dùng lại, giữ ID, yêu thích và tiến độ đọc.
+- Quét không xóa các dòng cũ: file đã bị xóa/di chuyển vẫn tuân theo xử lý `NOT_FOUND` khi mở. Nhập file thủ công bằng SAF và cài đặt thư mục lưu hoạt động riêng.
+- Trình duyệt dev giữ hành vi nhập file hiện tại, không xin quyền bộ nhớ. Cần kiểm chứng cấp/từ chối/thu hồi quyền, khởi động lại và quét trên Android thật.
+
 Viết bằng TypeScript để làm chuẩn. Phía Kotlin cài đặt đúng từng lệnh này. Tên trường dùng camelCase; cột SQLite vẫn là snake_case trong [`schema.md`](schema.md).
 
 ```ts

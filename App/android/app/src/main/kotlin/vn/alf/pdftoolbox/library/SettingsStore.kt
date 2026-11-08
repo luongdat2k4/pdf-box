@@ -3,6 +3,7 @@ package vn.alf.pdftoolbox.library
 import android.content.Context
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.first
@@ -24,6 +25,9 @@ class SettingsStore(context: Context) {
 
     suspend fun get(): Settings = store.data.first().toSettings()
 
+    suspend fun libraryPrompted(): Boolean = store.data.first()[LIBRARY_PROMPTED] ?: false
+    suspend fun markLibraryPrompted() { store.edit { it[LIBRARY_PROMPTED] = true } }
+
     suspend fun update(patch: SettingsPatch): Settings {
         store.edit { prefs ->
             patch.saveMode?.let { prefs[SAVE_MODE] = it.value }
@@ -42,6 +46,7 @@ class SettingsStore(context: Context) {
     }
 
     private companion object {
+        val LIBRARY_PROMPTED = booleanPreferencesKey("device_storage_prompted")
         val SAVE_MODE = stringPreferencesKey("save_mode")
         val SAVE_FOLDER_URI = stringPreferencesKey("save_folder_uri")
     }

@@ -1,6 +1,8 @@
 package vn.alf.pdftoolbox.library.bridge
 
 import android.app.Activity
+import android.Manifest
+import android.content.ActivityNotFoundException
 import android.content.ClipData
 import android.content.Intent
 import android.net.Uri
@@ -15,6 +17,9 @@ import com.getcapacitor.PluginCall
 import com.getcapacitor.PluginMethod
 import com.getcapacitor.annotation.ActivityCallback
 import com.getcapacitor.annotation.CapacitorPlugin
+import com.getcapacitor.annotation.Permission
+import com.getcapacitor.annotation.PermissionCallback
+import android.provider.Settings
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -45,7 +50,9 @@ import vn.alf.pdftoolbox.library.model.SaveMode
  * Binary data never crosses the bridge as one blob. Reads are served in chunks (`readChunk`) and writes arrive
  * in chunks through a session (`writeBegin`, `writeChunk`, `writeCommit` / `writeAbort`).
  */
-@CapacitorPlugin(name = "Library")
+@CapacitorPlugin(name = "Library", permissions = [Permission(alias = "deviceStorage", strings = [
+    Manifest.permission.READ_EXTERNAL_STORAGE, Manifest.permission.WRITE_EXTERNAL_STORAGE,
+])])
 class LibraryPlugin : Plugin() {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private lateinit var repo: LibraryRepository
@@ -128,6 +135,51 @@ class LibraryPlugin : Plugin() {
     }
 
     // ---- import --------------------------------------------------------------------------------------------------
+
+    private suspend fun libraryAccessJson(): JSObject {
+        val (readable, prompted) = repo.libraryAccess()
+        return JSObject().put("hasAccess", readable).put("prompted", prompted)
+    }
+
+    @PluginMethod
+    fun getLibraryAccess(call: PluginCall) = launchCall(call) { libraryAccessJson() }
+
+    @PluginMethod
+    fun requestLibraryAccess(call: PluginCall) = launchCall(call) {
+        repo.markLibraryPrompted()
+        if (repo.libraryAccess().first) return@launchCall libraryAccessJson()
+        withContext(Dispatchers.Main) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                val intent = Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION,
+                    Uri.parse("package:${context.packageName}"))
+                try {
+                    startActivityForResult(call, intent, "libraryAccessReturned")
+                } catch (_: ActivityNotFoundException) {
+                    startActivityForResult(call, Intent(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION), "libraryAccessReturned")
+                }
+            } else {
+                requestPermissionForAlias("deviceStorage", call, "legacyLibraryAccessReturned")
+            }
+        }
+        DEFERRED
+    }
+
+    @ActivityCallback
+    fun libraryAccessReturned(call: PluginCall?, result: ActivityResult) {
+        if (call == null) return
+        // Special-access Settings does not return RESULT_OK; always check actual OS permission.
+        launchCall(call) { libraryAccessJson() }
+    }
+
+    @PermissionCallback
+    fun legacyLibraryAccessReturned(call: PluginCall) {
+        launchCall(call) { libraryAccessJson() }
+    }
+
+    @PluginMethod
+    fun scanLibrary(call: PluginCall) = launchCall(call) {
+        JSObject().put("count", repo.scanLibrary(ExtensionFilter(call.data.stringList("accept"))))
+    }
 
     @PluginMethod
     fun importFromDevice(call: PluginCall) {

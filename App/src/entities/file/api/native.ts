@@ -1,10 +1,13 @@
 import { registerPlugin, type PluginListenerHandle } from '@capacitor/core'
 import { askConfirm } from '@/shared/ui'
 import { t, type MessageKey } from '@/shared/i18n'
-import type { DocumentPatch, DocumentRecord, NativeApi, OpenedEvent, Settings } from './native-api'
+import type { DocumentPatch, DocumentRecord, LibraryAccess, NativeApi, OpenedEvent, Settings } from './native-api'
 
 /** Raw commands of the Kotlin `Library` plugin (design-note/native-api.md, "Lệnh của plugin"). */
 interface LibraryPlugin {
+  getLibraryAccess(): Promise<LibraryAccess>
+  requestLibraryAccess(): Promise<LibraryAccess>
+  scanLibrary(o: { accept: string[] }): Promise<{ count: number }>
   listDocuments(): Promise<{ documents: DocumentRecord[] }>
   updateDocument(o: { id: string; patch: DocumentPatch }): Promise<{ document: DocumentRecord }>
   removeDocuments(o: { ids: string[] }): Promise<void>
@@ -103,6 +106,9 @@ async function writeBlob(data: Blob, commit: { name?: string; mimeType?: string;
 }
 
 export const nativeApi: NativeApi = {
+  getLibraryAccess: () => call(Library.getLibraryAccess()),
+  requestLibraryAccess: () => call(Library.requestLibraryAccess()),
+  scanLibrary: (accept) => call(Library.scanLibrary({ accept })),
   async listDocuments() {
     return (await call(Library.listDocuments())).documents
   },

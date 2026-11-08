@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { t } from '@/shared/i18n'
-import { computed, ref } from 'vue'
+import { computed, ref, watch, onMounted, onUnmounted } from 'vue'
+import { App as CapApp } from '@capacitor/app'
+import { isNative } from '@/shared/lib/platform'
 import { useRoute, useRouter } from 'vue-router'
 import { Ic, toast } from '@/shared/ui'
 import { tp, type MessageKey } from '@/shared/i18n'
@@ -18,6 +20,21 @@ const lib = useLibrary()
 type Tab = 'home' | 'history' | 'favorites'
 // Tab and type filter live in the URL: /, /history, /favorites and ?type=pdf|word|...
 const tab = computed<Tab>(() => (route.name === 'history' || route.name === 'favorites' ? route.name : 'home'))
+const device = isNative()
+async function syncFiles(requestAccess = false) {
+  try { await lib.syncDeviceFiles(requestAccess) }
+  catch (err) { toast(errorMessage(err), true) }
+}
+watch(tab, (value) => {
+  if (device && value === 'home') void syncFiles()
+}, { immediate: true })
+let resumeListener: ReturnType<typeof CapApp.addListener> | undefined
+onMounted(() => {
+  if (device) resumeListener = CapApp.addListener('appStateChange', ({ isActive }) => {
+    if (isActive && tab.value === 'home') void syncFiles()
+  })
+})
+onUnmounted(() => { void resumeListener?.then((handle) => handle.remove()) })
 const filter = computed<'all' | FileKind>(() => {
   const t = String(route.query.type ?? '')
   return chips.some((c) => c.id === t && t !== 'all') ? (t as FileKind) : 'all'
@@ -129,6 +146,19 @@ async function pick() {
           <img :src="`${base}assets/icons/${c.icon}.webp`" :alt="''" class="size-8 object-contain" draggable="false" />
         </span>
         <span class="text-[12px] leading-none" :class="filter === c.id ? 'font-semibold text-primary' : 'text-ink/65'">{{ chipLabel(c) }}</span>
+      </button>
+    </div>
+
+    <div v-if="device && tab === 'home'" class="flex flex-none items-center gap-3 border-b border-surface-strong bg-surface px-4 py-3" aria-live="polite">
+      <Ic v-if="lib.scanning" name="loading" class="shrink-0 animate-spin text-primary" />
+      <p class="min-w-0 flex-1 text-xs text-ink/65">
+        {{ t(lib.scanning ? 'home.scanning' : lib.libraryAccess.hasAccess ? 'home.deviceConnected' : 'home.deviceAccessHint') }}
+      </p>
+      <button v-if="lib.libraryAccess.hasAccess" :disabled="lib.scanning" class="text-xs font-semibold text-primary disabled:opacity-40" @click="syncFiles()">
+        {{ t('home.refreshFiles') }}
+      </button>
+      <button v-if="!lib.libraryAccess.hasAccess" :disabled="lib.scanning" class="text-xs font-semibold text-primary disabled:opacity-40" @click="syncFiles(true)">
+        {{ t('home.grantDeviceAccess') }}
       </button>
     </div>
 

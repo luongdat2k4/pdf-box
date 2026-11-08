@@ -26,6 +26,34 @@ function toMetas(rs: DocumentRecord[]): FileMeta[] {
 export const useLibrary = defineStore('library', () => {
   const items = ref<FileMeta[]>([])
   const loaded = ref(false)
+  const libraryAccess = ref({ hasAccess: false, prompted: true })
+  const scanning = ref(false)
+  let scanPending: Promise<void> | undefined
+
+  /** Serialises Home entry, resume and manual refresh so only one permission request/scan can be active. */
+  function syncDeviceFiles(requestAccess = false): Promise<void> {
+    if (scanPending) return scanPending
+    scanning.value = true
+    scanPending = (async () => {
+      try {
+        libraryAccess.value = await api.getLibraryAccess()
+        if (!libraryAccess.value.hasAccess && (requestAccess || !libraryAccess.value.prompted)) {
+          libraryAccess.value = await api.requestLibraryAccess()
+        }
+        if (libraryAccess.value.hasAccess) {
+          await api.scanLibrary(Object.keys(EXT_KIND))
+          await load()
+        }
+      } catch (e) {
+        libraryAccess.value = await api.getLibraryAccess().catch(() => libraryAccess.value)
+        if ((e as Error).name !== 'AbortError') throw e
+      } finally {
+        scanning.value = false
+        scanPending = undefined
+      }
+    })()
+    return scanPending
+  }
 
   async function load() {
     items.value = toMetas(await api.listDocuments()).sort((a, b) => b.addedAt - a.addedAt)
@@ -152,7 +180,7 @@ export const useLibrary = defineStore('library', () => {
   }
 
   return {
-    items, loaded, all, recent, favorites, pdfs, images, documents,
+    items, loaded, all, recent, favorites, pdfs, images, documents, libraryAccess, scanning, syncDeviceFiles,
     load, find, addBlob, importFiles, importFromDevice, blobOf, bytesOf, touch, toggleFavorite, rename, replaceBlob, remove,
     saveProgress, adopt,
   }

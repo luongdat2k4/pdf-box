@@ -1,4 +1,9 @@
 {
+  "home.scanning": "Finding documents on your device…",
+  "home.deviceConnected": "Showing documents found on your device.",
+  "home.deviceAccessHint": "Allow file access so the app can automatically find documents on your device.",
+  "home.refreshFiles": "Refresh",
+  "home.grantDeviceAccess": "Allow access",
   "common.cancel": "Cancel",
   "common.done": "Done",
   "common.open": "Open",

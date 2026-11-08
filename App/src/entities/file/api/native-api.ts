@@ -39,6 +39,9 @@ export interface OpenedEvent {
 }
 
 export interface NativeApi {
+  getLibraryAccess(): Promise<LibraryAccess>
+  requestLibraryAccess(): Promise<LibraryAccess>
+  scanLibrary(accept: string[]): Promise<{ count: number }>
   listDocuments(): Promise<DocumentRecord[]>
   updateDocument(id: string, patch: DocumentPatch): Promise<DocumentRecord>
   removeDocuments(ids: string[]): Promise<void>
@@ -63,6 +66,11 @@ export interface NativeApi {
 
   /** Called for each "Open with" request, including one that launched the app. Returns an unsubscribe function. */
   onDocumentOpened(cb: (e: OpenedEvent) => void): Promise<() => void>
+}
+
+export interface LibraryAccess {
+  hasAccess: boolean
+  prompted: boolean
 }
 
 /** The real Android plugin on a device, an IndexedDB stand-in in the browser (dev only). */

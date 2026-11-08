@@ -7,7 +7,7 @@ export const router = createRouter({
   history: createWebHistory(),
   routes: [
     // Home tabs are routes of the same page (/, /history, /favorites); the type chip is the `?type=` query.
-    { path: '/', name: 'home', component: () => import('@/pages/home').then((m) => m.HomePage) },
+    { path: '/', alias: '/home', name: 'home', component: () => import('@/pages/home').then((m) => m.HomePage) },
     { path: '/history', name: 'history', component: () => import('@/pages/home').then((m) => m.HomePage) },
     { path: '/favorites', name: 'favorites', component: () => import('@/pages/home').then((m) => m.HomePage) },
     { path: '/search', name: 'search', component: () => import('@/pages/search').then((m) => m.SearchPage) },

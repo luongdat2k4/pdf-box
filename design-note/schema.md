@@ -117,6 +117,8 @@ Giả định (cần xác nhận):
 
 Quy tắc:
 
+- **Tự tìm file ở Home:** xin quyền bộ nhớ rồi tự quét, không yêu cầu chọn thư mục. Android 11+ dùng `MANAGE_EXTERNAL_STORAGE`; Android cũ dùng quyền đọc/ghi bộ nhớ. Các file tìm thấy vẫn có `storage = external`, `location = content://` do FileProvider của app cấp cho file gốc. Chỉ lưu metadata và link; không sao chép nội dung. Quyền của loại link này phụ thuộc quyền bộ nhớ, không dùng `takePersistableUriPermission` từng file. Chi tiết: [`native-api.md`](native-api.md), mục “Tự tìm tài liệu trên Home”.
+
 - `app`: lưu **đường dẫn tương đối**, ghép với thư mục gốc lúc chạy. Đường dẫn tuyệt đối có thể đổi khi khôi phục máy.
 - `external`: native mở hộp chọn file của hệ thống (`ACTION_OPEN_DOCUMENT`) và gọi `takePersistableUriPermission` ngay khi chọn, nếu không sẽ mất quyền sau khi khởi động lại. Theo tài liệu Android, hệ thống giới hạn số URI được giữ quyền (khoảng 128, tăng lên 512 từ Android 11); **cần xác nhận lại khi làm**.
 - Khi mất quyền hoặc file không còn: native trả mã lỗi `PERMISSION_LOST` hoặc `NOT_FOUND`, giao diện cho người dùng bỏ khỏi danh sách. Trạng thái này **tính lúc chạy**, không lưu thành cột.

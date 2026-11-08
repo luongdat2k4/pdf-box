@@ -20,6 +20,7 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import vn.alf.pdftoolbox.library.db.DocumentDao
 import vn.alf.pdftoolbox.library.files.AppContentStore
+import vn.alf.pdftoolbox.library.files.DeviceStorage
 import vn.alf.pdftoolbox.library.files.ExtensionFilter
 import vn.alf.pdftoolbox.library.files.ExternalContentStore
 import vn.alf.pdftoolbox.library.files.FileNames
@@ -70,6 +71,32 @@ class LibraryRepository(
 
     /** Held while an app file and its row are being created, and while orphans are collected. */
     private val contentGate = Mutex()
+    private val scanGate = Mutex()
+
+    private val deviceStorage = DeviceStorage(context)
+
+    suspend fun libraryAccess(): Pair<Boolean, Boolean> =
+        deviceStorage.hasAccess() to settingsStore.libraryPrompted()
+
+    suspend fun markLibraryPrompted() = settingsStore.markLibraryPrompted()
+
+    /** Automatically indexes supported shared-storage files after the system grants storage access. */
+    suspend fun scanLibrary(filter: ExtensionFilter): Int = scanGate.withLock {
+        deviceStorage.scan(filter) { uri, info ->
+            val location = uri.toString()
+            locked("uri:$location") {
+                val existing = dao.find(Storage.EXTERNAL, location)
+                if (existing == null) {
+                    dao.insert(newEntity(newId(), Storage.EXTERNAL, location, info.name,
+                        MimeTypes.resolve(info.mimeType, info.name), info.sizeBytes))
+                } else locked(existing.id) {
+                    dao.get(existing.id)?.let { current ->
+                        dao.update(current.copy(sizeBytes = info.sizeBytes, mimeType = MimeTypes.resolve(info.mimeType, info.name)))
+                    }
+                }
+            }
+        }
+    }
 
     private suspend fun <T> locked(id: String, block: suspend () -> T): T =
         locks.getOrPut(id) { Mutex() }.withLock { block() }
@@ -158,15 +185,17 @@ class LibraryRepository(
         // A provider may refuse persistent access; then a link would die on restart, so copy instead.
         if (mode == ImportMode.LINK && external.persist(p.uri, p.grantedFlags)) {
             val location = p.uri.toString()
-            dao.find(Storage.EXTERNAL, location)?.let { return it } // already linked
-            val entity = newEntity(newId(), Storage.EXTERNAL, location, info.name, MimeTypes.resolve(info.mimeType, info.name), info.sizeBytes)
-            try {
-                dao.insert(entity)
-            } catch (t: Throwable) {
-                external.release(p.uri)
-                throw t
+            return locked("uri:$location") {
+                dao.find(Storage.EXTERNAL, location)?.let { return@locked it } // already linked
+                val entity = newEntity(newId(), Storage.EXTERNAL, location, info.name, MimeTypes.resolve(info.mimeType, info.name), info.sizeBytes)
+                try {
+                    dao.insert(entity)
+                } catch (t: Throwable) {
+                    external.release(p.uri)
+                    throw t
+                }
+                entity
             }
-            return entity
         }
         return copyIn(p.uri, info)
     }

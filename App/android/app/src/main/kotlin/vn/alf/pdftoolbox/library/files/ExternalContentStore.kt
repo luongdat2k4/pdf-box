@@ -22,12 +22,20 @@ import vn.alf.pdftoolbox.library.model.notFound
 class ExternalContentStore(private val context: Context) {
     private val resolver get() = context.contentResolver
 
+    private fun requireDeviceAccess(uri: Uri) {
+        if (uri.authority == "${context.packageName}.fileprovider" &&
+            uri.pathSegments.firstOrNull() in setOf("my_images", "shared_storage")) {
+            DeviceStorage(context).requireAccess()
+        }
+    }
+
     data class Info(val name: String, val sizeBytes: Long?, val mimeType: String?)
 
     data class RangeRead(val bytes: ByteArray, val totalSize: Long?)
 
     /** Name, size and type as reported by the provider. */
     fun describe(uri: Uri): Info {
+        requireDeviceAccess(uri)
         try {
             resolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME, OpenableColumns.SIZE), null, null, null)?.use { c ->
                 if (c.moveToFirst()) {
@@ -82,6 +90,7 @@ class ExternalContentStore(private val context: Context) {
     }
 
     fun openInput(uri: Uri): InputStream = try {
+        requireDeviceAccess(uri)
         resolver.openInputStream(uri) ?: throw notFound("File $uri")
     } catch (e: FileNotFoundException) {
         throw notFound("File $uri")
@@ -96,6 +105,7 @@ class ExternalContentStore(private val context: Context) {
 
     /** Reads up to [length] bytes starting at [offset] without loading the whole file. */
     fun readRange(uri: Uri, offset: Long, length: Int): RangeRead {
+        requireDeviceAccess(uri)
         try {
             val pfd = resolver.openFileDescriptor(uri, "r") ?: throw notFound("File $uri")
             pfd.use {
@@ -142,6 +152,7 @@ class ExternalContentStore(private val context: Context) {
      * This cannot be atomic: if copying fails halfway, the target is left truncated.
      */
     fun overwrite(uri: Uri, source: File) {
+        requireDeviceAccess(uri)
         try {
             val out = resolver.openOutputStream(uri, "wt")
                 ?: throw LibraryException(ErrorCode.NO_WRITE_PERMISSION, "Cannot write to $uri")

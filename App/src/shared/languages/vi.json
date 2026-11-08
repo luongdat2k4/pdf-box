@@ -1,4 +1,9 @@
 {
+  "home.scanning": "Đang tìm tài liệu trên điện thoại…",
+  "home.deviceConnected": "Đang hiển thị tài liệu tìm thấy trên điện thoại.",
+  "home.deviceAccessHint": "Cho phép truy cập file để ứng dụng tự tìm tài liệu trên điện thoại.",
+  "home.refreshFiles": "Quét lại",
+  "home.grantDeviceAccess": "Cấp quyền",
   "common.cancel": "Hủy",
   "common.done": "Xong",
   "common.open": "Mở",
