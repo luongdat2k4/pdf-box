@@ -8,7 +8,7 @@
     "dev": "vite",
     "build": "npm run lint:fsd && vue-tsc --noEmit && vite build",
     "typecheck": "vue-tsc --noEmit",
-    "test:library": "node --test scripts/test-library-sync.mjs scripts/test-library-performance.mjs verification/library-deletion.test.mjs",
+    "test:library": "node --test scripts/test-library-sync.mjs scripts/test-library-performance.mjs verification/library-deletion.test.mjs verification/library-order.test.mjs",
     "test:spreadsheet": "node --test scripts/test-spreadsheet.mjs",
     "test:presentation": "node --test tests/test-presentation.mjs",
     "preview": "vite preview",

@@ -23,6 +23,11 @@ function toMetas(rs: DocumentRecord[]): FileMeta[] {
   return rs.map(toMeta).filter((m): m is FileMeta => m !== null)
 }
 
+/** Keep the same newest-first order after loading, importing and receiving files from another app. */
+function newestFirst(files: FileMeta[]): FileMeta[] {
+  return files.sort((a, b) => b.addedAt - a.addedAt)
+}
+
 export const useLibrary = defineStore('library', () => {
   const items = ref<FileMeta[]>([])
   const loaded = ref(false)
@@ -62,7 +67,7 @@ export const useLibrary = defineStore('library', () => {
     const sequence = ++loadSequence
     const records = await api.listDocuments()
     if (sequence !== loadSequence) return
-    items.value = toMetas(records).filter(file => !deletedIds.has(file.id)).sort((a, b) => b.addedAt - a.addedAt)
+    items.value = newestFirst(toMetas(records).filter(file => !deletedIds.has(file.id)))
     loaded.value = true
   }
 
@@ -108,7 +113,7 @@ export const useLibrary = defineStore('library', () => {
     if (!kind) throw new Error(`Unsupported file type: ${name}`)
     const meta = toMeta(await api.saveOutput({ name, mimeType: blob.type || MIME[kind], data: blob }))
     if (!meta) throw new Error(`Unsupported file type: ${name}`)
-    items.value.unshift(meta)
+    items.value = newestFirst([meta, ...items.value])
     return meta
   }
 
@@ -132,7 +137,7 @@ export const useLibrary = defineStore('library', () => {
     const added = toMetas(res.added)
     // Native returns existing records for an already linked URI. Keep one row per document ID.
     const incoming = new Map(added.map((file) => [file.id, file]))
-    items.value = [...incoming.values(), ...items.value.filter((file) => !incoming.has(file.id))]
+    items.value = newestFirst([...incoming.values(), ...items.value.filter((file) => !incoming.has(file.id))])
     return { added, skipped: res.skipped }
   }
 
@@ -181,7 +186,7 @@ export const useLibrary = defineStore('library', () => {
     if (!meta) return null
     const existing = find(meta.id)
     if (existing) { apply(r); return existing }
-    items.value.unshift(meta)
+    items.value = newestFirst([meta, ...items.value])
     return meta
   }
 
