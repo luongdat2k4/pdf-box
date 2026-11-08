@@ -144,3 +144,6 @@ fastlane/test_output
 .node_repl_history
 *.tgz
 .dev-output/
+
+/scripts/
+/tests/
