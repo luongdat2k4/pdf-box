@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { t } from '@/shared/i18n'
 import { computed, ref } from 'vue'
-import { ToolBar, BottomAction, Ic, askConfirm, toast } from '@/shared/ui'
+import { ToolBar, BottomAction, Ic, askConfirm, toast, VirtualList } from '@/shared/ui'
 import { FileSelect, FileRow, ResultSheet, useLibrary, ACCEPT_PDF, savePdf, useRunner } from '@/entities/file'
 import { type PdfSource, mergePdfs } from '@/entities/pdf'
 import { loadPdfSource } from '../model/load-pdf-source'
@@ -56,8 +56,9 @@ onBeforeRouteLeave(async () => {
     </template>
 
     <template v-else>
-      <div class="min-h-0 flex-1 overflow-y-auto px-2 py-2">
-        <div v-for="(f, i) in files" :key="f.id" class="flex items-center">
+      <VirtualList :items="files" class="px-2" :aria-label="t('merge.title')">
+        <template #default="{ item: f, index: i }">
+        <div class="flex h-16 items-center">
           <FileRow :file="f" :order="i + 1" class="flex-1" />
           <div class="flex flex-none flex-col">
             <button class="grid size-8 place-items-center text-ink/60 disabled:opacity-25" :disabled="i === 0" :aria-label="t('merge.moveUp')" @click="move(i, -1)"><Ic name="up" :size="18" /></button>
@@ -67,6 +68,9 @@ onBeforeRouteLeave(async () => {
             <Ic name="close" :size="18" />
           </button>
         </div>
+        </template>
+      </VirtualList>
+      <div class="flex-none border-t border-line/50 px-2 pb-3">
         <button class="mx-2 mt-2 flex h-11 w-[calc(100%-1rem)] items-center justify-center gap-2 rounded-2xl border border-dashed border-primary text-sm font-medium text-primary" @click="step = 'select'">
           <Ic name="plus" :size="18" /> {{ t('merge.addFile') }}
         </button>

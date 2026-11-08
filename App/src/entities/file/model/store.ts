@@ -26,6 +26,7 @@ function toMetas(rs: DocumentRecord[]): FileMeta[] {
 export const useLibrary = defineStore('library', () => {
   const items = ref<FileMeta[]>([])
   const loaded = ref(false)
+  const searchRevision = ref(0)
   const libraryAccess = ref({ hasAccess: false, prompted: true })
   const scanning = ref(false)
   let scanPending: Promise<void> | undefined
@@ -64,7 +65,10 @@ export const useLibrary = defineStore('library', () => {
   function apply(r: DocumentRecord) {
     const next = toMeta(r)
     const m = find(r.id)
-    if (next && m) Object.assign(m, next)
+    if (next && m) {
+      if (next.name !== m.name || next.mime !== m.mime || next.kind !== m.kind) searchRevision.value++
+      Object.assign(m, next)
+    }
   }
 
   const all = computed(() => items.value)
@@ -72,12 +76,19 @@ export const useLibrary = defineStore('library', () => {
     items.value.filter((f) => f.openedAt).sort((a, b) => (b.openedAt ?? 0) - (a.openedAt ?? 0)),
   )
   const favorites = computed(() => items.value.filter((f) => f.favorite))
-  const pdfs = computed(() => items.value.filter((f) => f.kind === 'pdf'))
-  const images = computed(() => items.value.filter((f) => f.kind === 'image'))
+  // Build type buckets once per structural/type change; switching Home chips reuses these arrays.
+  const byKind = computed(() => {
+    const groups: Record<FileKind, FileMeta[]> = { pdf: [], word: [], excel: [], ppt: [], txt: [], md: [], image: [] }
+    for (const file of items.value) groups[file.kind].push(file)
+    return groups
+  })
+  const pdfs = computed(() => byKind.value.pdf)
+  const images = computed(() => byKind.value.image)
   const documents = computed(() => items.value.filter((f) => f.kind !== 'pdf' && f.kind !== 'image'))
+  const byId = computed(() => new Map(items.value.map((file) => [file.id, file])))
 
   function find(id: string) {
-    return items.value.find((f) => f.id === id)
+    return byId.value.get(id)
   }
 
   async function addBlob(name: string, blob: Blob): Promise<FileMeta> {
@@ -107,7 +118,9 @@ export const useLibrary = defineStore('library', () => {
       throw e
     }
     const added = toMetas(res.added)
-    items.value.unshift(...added)
+    // Native returns existing records for an already linked URI. Keep one row per document ID.
+    const incoming = new Map(added.map((file) => [file.id, file]))
+    items.value = [...incoming.values(), ...items.value.filter((file) => !incoming.has(file.id))]
     return { added, skipped: res.skipped }
   }
 
@@ -154,7 +167,7 @@ export const useLibrary = defineStore('library', () => {
     const meta = toMeta(r)
     if (!meta) return null
     const existing = find(meta.id)
-    if (existing) { Object.assign(existing, meta); return existing }
+    if (existing) { apply(r); return existing }
     items.value.unshift(meta)
     return meta
   }
@@ -176,11 +189,12 @@ export const useLibrary = defineStore('library', () => {
 
   async function remove(ids: string[]) {
     await api.removeDocuments(ids)
-    items.value = items.value.filter((f) => !ids.includes(f.id))
+    const removed = new Set(ids)
+    items.value = items.value.filter((f) => !removed.has(f.id))
   }
 
   return {
-    items, loaded, all, recent, favorites, pdfs, images, documents, libraryAccess, scanning, syncDeviceFiles,
+    items, loaded, all, recent, favorites, byKind, pdfs, images, documents, searchRevision, libraryAccess, scanning, syncDeviceFiles,
     load, find, addBlob, importFiles, importFromDevice, blobOf, bytesOf, touch, toggleFavorite, rename, replaceBlob, remove,
     saveProgress, adopt,
   }

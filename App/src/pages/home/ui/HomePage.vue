@@ -4,7 +4,7 @@ import { computed, ref, watch, onMounted, onUnmounted } from 'vue'
 import { App as CapApp } from '@capacitor/app'
 import { isNative } from '@/shared/lib/platform'
 import { useRoute, useRouter } from 'vue-router'
-import { Ic, toast } from '@/shared/ui'
+import { Ic, toast, VirtualList } from '@/shared/ui'
 import { tp, type MessageKey } from '@/shared/i18n'
 import { errorMessage } from '@/shared/lib/error'
 import { useDragScroll } from '@/shared/lib/use-drag-scroll'
@@ -73,7 +73,8 @@ function selectChip(id: 'all' | FileKind, e: MouseEvent) {
 }
 
 const list = computed(() => {
-  const src = tab.value === 'home' ? lib.all : tab.value === 'history' ? lib.recent : lib.favorites
+  if (tab.value === 'home') return filter.value === 'all' ? lib.all : lib.byKind[filter.value]
+  const src = tab.value === 'history' ? lib.recent : lib.favorites
   return filter.value === 'all' ? src : src.filter((f) => f.kind === filter.value)
 })
 
@@ -162,8 +163,9 @@ async function pick() {
       </button>
     </div>
 
-    <main class="min-h-0 flex-1 overflow-y-auto bg-white px-2 pb-28 pt-1">
-      <div v-if="!list.length" class="grid h-full place-items-center px-10 text-center">
+    <VirtualList :items="list" :reset-key="`${tab}:${filter}`" :bottom-space="112" class="bg-white px-2" :aria-label="t('home.tab.home')">
+      <template #empty>
+      <div class="grid h-full place-items-center px-10 text-center">
         <div>
           <Ic name="files" :size="56" class="mx-auto text-surface-strong" />
           <p class="mt-3 text-sm text-ink/55">{{ emptyText }}</p>
@@ -172,8 +174,11 @@ async function pick() {
           </button>
         </div>
       </div>
-      <FileRow v-for="f in list" :key="f.id" :file="f" actions @click="open(f)" @star="lib.toggleFavorite(f.id)" @menu="menuFile = f" />
-    </main>
+      </template>
+      <template #default="{ item: f }">
+        <FileRow :file="f" actions @click="open(f)" @star="lib.toggleFavorite(f.id)" @menu="menuFile = f" />
+      </template>
+    </VirtualList>
 
     <button
       ref="fabEl"

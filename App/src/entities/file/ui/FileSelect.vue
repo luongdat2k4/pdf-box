@@ -2,10 +2,11 @@
 import { t } from '@/shared/i18n'
 import { computed, ref } from 'vue'
 import FileRow from './FileRow.vue'
-import { Ic, toast } from '@/shared/ui'
+import { Ic, toast, VirtualList } from '@/shared/ui'
 import { errorMessage } from '@/shared/lib/error'
 import { useLibrary } from '../model/store'
 import { acceptExts, type FileMeta } from '../model/types'
+import { useFileSearch } from '../model/use-file-search'
 
 /**
  * Library file picker shared by the tool screens: lists matching files, lets the user tick
@@ -25,15 +26,13 @@ const emit = defineEmits<{ 'update:modelValue': [ids: string[]] }>()
 const lib = useLibrary()
 const query = ref('')
 
-const shown = computed(() => {
-  const q = query.value.trim().toLowerCase()
-  return q ? props.files.filter((f) => f.name.toLowerCase().includes(q)) : props.files
-})
+const { results: shown, searching } = useFileSearch(() => props.files, query, () => lib.searchRevision, true)
+const selection = computed(() => new Map(props.modelValue.map((id, index) => [id, index + 1])))
 
 function toggle(id: string) {
   const cur = props.modelValue
   if (!props.multiple) return emit('update:modelValue', cur[0] === id ? [] : [id])
-  emit('update:modelValue', cur.includes(id) ? cur.filter((x) => x !== id) : [...cur, id])
+  emit('update:modelValue', selection.value.has(id) ? cur.filter((x) => x !== id) : [...cur, id])
 }
 
 async function pick() {
@@ -72,22 +71,25 @@ function matches(f: FileMeta) {
       </button>
     </div>
 
-    <div class="min-h-0 flex-1 overflow-y-auto px-2 pb-3">
-      <div v-if="!shown.length" class="grid h-full place-items-center px-8 text-center text-sm text-ink/50">
+    <p v-if="searching" role="status" class="px-4 py-2 text-xs text-ink/50">{{ t('search.working') }}</p>
+    <VirtualList :items="shown" :reset-key="query" :bottom-space="12" class="px-2" :aria-busy="searching" :aria-label="t('file.searchPlaceholder')">
+      <template #empty>
+      <div v-if="!searching" class="grid h-full place-items-center px-8 text-center text-sm text-ink/50">
         <div>
           <Ic name="files" :size="44" class="mx-auto mb-2 text-surface-strong" />
           {{ emptyText ?? t('common.importHint') }}
         </div>
       </div>
+      </template>
+      <template #default="{ item: f }">
       <FileRow
-        v-for="f in shown"
-        :key="f.id"
         :file="f"
         selectable
-        :selected="modelValue.includes(f.id)"
-        :order="ordered && modelValue.includes(f.id) ? modelValue.indexOf(f.id) + 1 : undefined"
+        :selected="selection.has(f.id)"
+        :order="ordered ? selection.get(f.id) : undefined"
         @click="toggle(f.id)"
       />
-    </div>
+      </template>
+    </VirtualList>
   </div>
 </template>

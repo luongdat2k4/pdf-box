@@ -1,4 +1,5 @@
 export { default as Ic } from './Ic.vue'
+export { default as VirtualList } from './VirtualList.vue'
 export { default as ToolBar } from './ToolBar.vue'
 export { default as BottomSheet } from './BottomSheet.vue'
 export { default as BottomAction } from './BottomAction.vue'

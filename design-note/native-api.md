@@ -59,6 +59,8 @@ Chọn adapter bằng `isNative()` (`App/src/shared/lib/platform.ts`).
 
 ### Tự tìm tài liệu trên Home
 
+**Danh sách lớn:** Home, trang tìm kiếm và `FileSelect` dùng `VirtualList` với dòng cao 64px, chỉ mount vùng nhìn thấy và đệm 5 dòng mỗi phía. Đổi tab, loại file hoặc truy vấn sẽ đưa danh sách về đầu. Tìm metadata chờ 160ms sau khi gõ, chuẩn hóa tiếng Việt không dấu, so khớp từng từ trong tên đầy đủ/đuôi file/MIME/loại file. Chuỗi chuẩn hóa được cache theo file, tự cập nhật khi đổi tên. Lọc tìm kiếm chạy theo đợt 512 file, nhường event loop và bỏ kết quả cũ khi truy vấn thay đổi. Store cache bảng tra theo ID và nhóm loại file; trạng thái chọn dùng Map. Nội dung file không được đọc để lọc/tìm. Hiện vẫn tải toàn bộ **metadata** vào bộ nhớ; virtual scroll giới hạn DOM, chưa phân trang ở native.
+
 Home (`/`, alias `/home`) dùng thêm ba lệnh của plugin `Library`:
 
 | Lệnh | Tham số | Kết quả |

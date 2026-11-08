@@ -1,4 +1,6 @@
 {
+  "search.working": "Searching…",
+  "search.count": "{n} matching files",
   "home.scanning": "Finding documents on your device…",
   "home.deviceConnected": "Showing documents found on your device.",
   "home.deviceAccessHint": "Allow file access so the app can automatically find documents on your device.",
@@ -73,9 +75,9 @@
   "file.searchPlaceholder": "Search files",
   "result.saved": "Saved to your library.",
   "result.more": "+ {n} more in your library",
-  "search.placeholder": "Search by file name",
+  "search.placeholder": "Search by name or file type",
   "search.none": "No files match \"{q}\"",
-  "search.hint": "Type to search your library",
+  "search.hint": "Search names or formats, e.g. report pdf",
   "settings.title": "Settings",
   "settings.where": "Where new files are saved",
   "settings.applies": "Applies to files the app creates: merged, split, locked, converted and scanned documents.",

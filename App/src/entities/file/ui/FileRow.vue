@@ -31,7 +31,7 @@ const icon = computed<{ name: IconName; cls: string }>(() => {
 
 <template>
   <div
-    class="flex items-center gap-3 rounded-2xl px-3 py-2.5 active:bg-surface"
+    class="flex h-16 items-center gap-3 rounded-2xl px-3 py-2.5 active:bg-surface"
     :class="selected ? 'bg-surface-strong' : ''"
     role="button"
     tabindex="0"
