@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { t } from '@/shared/i18n'
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, watch, ref, shallowRef } from 'vue'
 import { useRouter } from 'vue-router'
 import { ToolBar, Ic } from '@/shared/ui'
 import { useLibrary } from '@/entities/file'
-import { officeToHtml } from '@/entities/office'
+import { officeToHtml, readSpreadsheet, SpreadsheetViewer, type SpreadsheetBook } from '@/entities/office'
 import { errorMessage } from '@/shared/lib/error'
 
 const props = defineProps<{ id: string }>()
@@ -18,26 +18,43 @@ const article = ref<HTMLElement | null>(null)
 const imageUrl = ref('')
 const error = ref('')
 const loading = ref(true)
+const spreadsheet = shallowRef<SpreadsheetBook | null>(null)
 const file = computed(() => lib.find(props.id))
 
-onMounted(async () => {
-  // The library store may still be loading when the route is opened directly.
-  if (!lib.loaded) await lib.load()
-  const f = file.value
-  if (!f) { error.value = t('common.fileGone'); loading.value = false; return }
+watch(() => props.id, async (_id, _previous, onCleanup) => {
+  const controller = new AbortController()
+  onCleanup(() => {
+    controller.abort()
+    if (imageUrl.value) URL.revokeObjectURL(imageUrl.value)
+  })
+  loading.value = true; error.value = ''; html.value = ''; sourceHtml.value = ''; imageUrl.value = ''
+  spreadsheet.value = null; mode.value = 'preview'
   try {
+    // The library may still be loading when this route is opened directly.
+    if (!lib.loaded) await lib.load()
+    controller.signal.throwIfAborted()
+    const f = file.value
+    if (!f) throw new Error(t('common.fileGone'))
     const blob = await lib.blobOf(f.id)
+    controller.signal.throwIfAborted()
     if (f.kind === 'image') imageUrl.value = URL.createObjectURL(blob)
+    else if (f.kind === 'excel') spreadsheet.value = await readSpreadsheet(blob, controller.signal)
     else {
-      html.value = await officeToHtml(f.kind, blob, f.name)
-      if (f.kind === 'md') sourceHtml.value = await officeToHtml('txt', blob, f.name)
+      const content = await officeToHtml(f.kind, blob, f.name)
+      controller.signal.throwIfAborted()
+      html.value = content
+      if (f.kind === 'md') {
+        const source = await officeToHtml('txt', blob, f.name)
+        controller.signal.throwIfAborted()
+        sourceHtml.value = source
+      }
     }
   } catch (e) {
-    error.value = errorMessage(e)
+    if (!controller.signal.aborted) error.value = errorMessage(e)
   } finally {
-    loading.value = false
+    if (!controller.signal.aborted) loading.value = false
   }
-})
+}, { immediate: true })
 
 /** In-document links (#section) scroll inside the page; never let them navigate (they would change the URL). */
 function onArticleClick(e: MouseEvent) {
@@ -49,7 +66,6 @@ function onArticleClick(e: MouseEvent) {
   article.value?.querySelector(`[id="${CSS.escape(id)}"]`)?.scrollIntoView({ block: 'start' })
 }
 
-onBeforeUnmount(() => imageUrl.value && URL.revokeObjectURL(imageUrl.value))
 </script>
 
 <template>
@@ -62,7 +78,8 @@ onBeforeUnmount(() => imageUrl.value && URL.revokeObjectURL(imageUrl.value))
         <button class="rounded-full px-3 py-1.5 text-sm font-medium text-primary active:bg-surface" @click="router.push('/tool/doc2pdf')">{{ t('office.toPdf') }}</button>
       </template>
     </ToolBar>
-    <main class="min-h-0 flex-1 overflow-auto bg-surface p-3">
+    <SpreadsheetViewer v-if="spreadsheet && !loading && !error" :book="spreadsheet" />
+    <main v-else class="min-h-0 flex-1 overflow-auto bg-surface p-3">
       <div v-if="loading" class="grid h-full place-items-center text-primary"><Ic name="loading" spin :size="32" /></div>
       <div v-else-if="error" class="mx-auto mt-24 max-w-xs text-center text-sm text-ink/60">
         <Ic name="warn" :size="40" class="mx-auto mb-2 text-amber-500" />
