@@ -9,7 +9,7 @@ export interface FileMeta {
   addedAt: number
   openedAt: number | null
   favorite: boolean
-  /** Reading position, restored when the file is reopened (PDF only). */
+  /** Reading position, restored when a PDF or PowerPoint file is reopened. */
   lastPage: number
   lastZoom: number | null
   pageCount: number | null

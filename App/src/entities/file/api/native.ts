@@ -122,11 +122,20 @@ export const nativeApi: NativeApi = {
   importFromDevice: (opts) => call(Library.importFromDevice(opts)),
   saveOutput: ({ name, mimeType, data }) => writeBlob(data, { name, mimeType }),
 
-  async readContent(id) {
+  async readContent(id, maxBytes) {
     const parts: Uint8Array<ArrayBuffer>[] = []
     for (let offset = 0; ; ) {
-      const r = await call(Library.readChunk({ id, offset, length: CHUNK }))
+      // Read at most one byte past the remaining budget to detect unknown-size streams safely.
+      const length = maxBytes === undefined ? CHUNK : Math.min(CHUNK, Math.max(1, maxBytes - offset + 1))
+      const r = await call(Library.readChunk({ id, offset, length }))
+      if (maxBytes !== undefined && r.size !== null && r.size > maxBytes) {
+        throw Object.assign(new Error('Content exceeds the allowed size'), { code: 'CONTENT_TOO_LARGE' })
+      }
       const bytes = base64ToBytes(r.data) as Uint8Array<ArrayBuffer>
+      if (maxBytes !== undefined && offset + bytes.length > maxBytes) {
+        throw Object.assign(new Error('Content exceeds the allowed size'), { code: 'CONTENT_TOO_LARGE' })
+      }
+      if (!r.eof && !bytes.length) throw new Error('Content stream made no progress')
       parts.push(bytes)
       offset += bytes.length
       if (r.eof) break

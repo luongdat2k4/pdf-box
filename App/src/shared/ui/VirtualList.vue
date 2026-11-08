@@ -7,7 +7,8 @@ const props = withDefaults(defineProps<{
   rowHeight?: number
   resetKey?: string
   bottomSpace?: number
-}>(), { rowHeight: 64, bottomSpace: 0 })
+  initialIndex?: number
+}>(), { rowHeight: 64, bottomSpace: 0, initialIndex: 0 })
 defineSlots<{ default(props: { item: T; index: number }): unknown; empty(): unknown }>()
 const viewport = ref<HTMLElement | null>(null)
 const height = ref(0)
@@ -35,6 +36,7 @@ watch(() => props.items.length, async () => {
   measure()
 })
 onMounted(() => {
+  if (viewport.value && props.initialIndex > 0) viewport.value.scrollTop = Math.max(0, Math.min(props.initialIndex, props.items.length - 1)) * props.rowHeight
   measure()
   observer = new ResizeObserver(measure)
   if (viewport.value) observer.observe(viewport.value)

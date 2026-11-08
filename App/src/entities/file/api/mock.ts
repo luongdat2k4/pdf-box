@@ -47,9 +47,10 @@ async function metaOf(id: string): Promise<FileMeta> {
   return m
 }
 
-async function blobOf(id: string): Promise<Blob> {
+async function blobOf(id: string, maxBytes?: number): Promise<Blob> {
   const b = await db.getBlob(id)
   if (!b) throw Object.assign(new Error('The file no longer exists'), { code: 'NOT_FOUND' })
+  if (maxBytes !== undefined && b.size > maxBytes) throw Object.assign(new Error('Content exceeds the allowed size'), { code: 'CONTENT_TOO_LARGE' })
   return b
 }
 

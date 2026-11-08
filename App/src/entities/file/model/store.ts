@@ -135,8 +135,8 @@ export const useLibrary = defineStore('library', () => {
     return { added, skipped }
   }
 
-  async function blobOf(id: string): Promise<Blob> {
-    return api.readContent(id)
+  async function blobOf(id: string, maxBytes?: number): Promise<Blob> {
+    return api.readContent(id, maxBytes)
   }
 
   async function bytesOf(id: string): Promise<Uint8Array> {

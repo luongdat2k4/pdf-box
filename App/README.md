@@ -30,6 +30,7 @@ Android: cần JDK 17+ và Android Studio. Thư mục `android/` đã được t
 | Ảnh → PDF (A3, A4, A5, A6, B4, B5) | `embedJpg/embedPng`, vừa khít trang và căn giữa |
 | PDF → Ảnh (từng trang hoặc một ảnh dài, 3 mức chất lượng) | pdf.js render ra canvas, xuất JPEG |
 | Xem Word (.docx), Excel, TXT, Markdown (`.md`, `.markdown`; có tab Preview/Source) | `mammoth`, SheetJS, `marked` (GFM), đều qua DOMPurify |
+| Đọc PowerPoint `.ppt` / `.pptx` trong app | `@web-ppt/core` 0.8.0 (MIT), dựng SVG trực tiếp trong worker, không chuyển PDF; vuốt, zoom, thumbnail virtual scroll, nội dung/ghi chú và nhớ vị trí |
 | Word/Excel/TXT/Markdown → PDF | `html2canvas` cắt thành trang A4 (**PDF chỉ chứa ảnh, không chọn/tìm được chữ**) |
 | Scan bằng camera → PDF | `@capacitor/camera` (web: `<input capture>`), chế độ "Document" (xám + kéo giãn tương phản) |
 | Lưu / chia sẻ file | `@capacitor/filesystem` (Documents/PDFToolbox), `@capacitor/share`; web: tải xuống / Web Share |
@@ -37,7 +38,9 @@ Android: cần JDK 17+ và Android Studio. Thư mục `android/` đã được t
 ## Giới hạn đã biết
 
 - Không có OCR; scan chỉ tạo PDF dạng ảnh.
-- Không xem được `.doc` cũ (cần lưu thành `.docx`) và PowerPoint.
+- Không xem được `.doc` cũ (cần lưu thành `.docx`).
+- PowerPoint hiện là view tĩnh, chưa chạy animation, video/audio, link tương tác hoặc mở file có mật khẩu. Bố cục/font phức tạp cần kiểm tra bằng file thực tế trên Android; font không có trên máy có thể bị thay thế.
+- PowerPoint có giới hạn an toàn cho mobile: đầu vào 32 MiB, tối đa 5.000 slide; ZIP tối đa 16 MiB/entry và 64 MiB tổng giải nén. CFB sai cấu trúc bị chặn trước parser. Worker bị dừng nếu mở file quá 20 giây hoặc dựng một slide quá 8 giây; file vượt hạn mức sẽ có thông báo.
 - Không có copy chữ từ PDF (chưa có lớp chọn chữ).
 - Chú thích được "in" vào trang (không phải annotation PDF chuẩn) và chỉ hỗ trợ trang không bị xoay; chọn vùng bằng kéo thả, không bám theo dòng chữ.
 - Tìm chữ chỉ khớp trong một đoạn chữ liền của pdf.js, cụm từ bị tách qua nhiều đoạn có thể không tìm thấy.

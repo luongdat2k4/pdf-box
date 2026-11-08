@@ -53,7 +53,8 @@ export interface NativeApi {
   }): Promise<{ added: DocumentRecord[]; skipped: string[] }>
   saveOutput(opts: { name: string; mimeType: string; data: Blob }): Promise<DocumentRecord>
 
-  readContent(id: string): Promise<Blob>
+  /** Stop reading when the content exceeds the caller's byte budget, including unknown-size streams. */
+  readContent(id: string, maxBytes?: number): Promise<Blob>
   replaceContent(id: string, data: Blob): Promise<DocumentRecord>
 
   /** Returns where the copy ended up (a path, URI or file name). */
