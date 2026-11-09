@@ -40,6 +40,7 @@ function download(name: string, blob: Blob): void {
 }
 
 const settings: Settings = { saveMode: 'app', saveFolderUri: null }
+let revision = 0
 
 async function metaOf(id: string): Promise<FileMeta> {
   const m = (await db.listMeta()).find((f) => f.id === id)
@@ -63,7 +64,7 @@ async function store(name: string, mimeType: string, data: Blob): Promise<Docume
     lastPage: 0, lastZoom: null, pageCount: null, isEncrypted: false,
   }
   await db.putFile(meta, data)
-  return toRecord(meta)
+  return { ...toRecord(meta), revision: ++revision }
 }
 
 export const mockApi: NativeApi = {
@@ -71,7 +72,12 @@ export const mockApi: NativeApi = {
   async requestLibraryAccess() {
     throw Object.assign(new Error('Device file access needs the Android app'), { code: 'INVALID_ARGUMENT' })
   },
-  async scanLibrary() { return { count: 0 } },
+  async syncLibrary() { return { hasAccess: false, initialization: 'complete', phase: 'idle', processed: 0 } },
+  async scanLibrary() { return { hasAccess: false, initialization: 'complete', phase: 'idle', processed: 0 } },
+  async getLibrarySnapshot() {
+    const before = revision
+    return { documents: (await db.listMeta()).map(toRecord), revision: before }
+  },
   async listDocuments() {
     return (await db.listMeta()).map(toRecord)
   },
@@ -87,11 +93,12 @@ export const mockApi: NativeApi = {
     if (patch.pageCount !== undefined) m.pageCount = patch.pageCount
     if (patch.isEncrypted !== undefined) m.isEncrypted = patch.isEncrypted
     await db.putMeta(m)
-    return toRecord(m)
+    return { ...toRecord(m), revision: ++revision }
   },
 
   async removeDocuments(ids) {
-    for (const id of ids) await db.removeFile(id)
+    for (const id of ids) { await db.removeFile(id); revision++ }
+    return { revision }
   },
 
   async importFromDevice({ accept, multiple }) {
@@ -117,7 +124,7 @@ export const mockApi: NativeApi = {
     m.size = data.size
     m.modifiedAt = Date.now()
     await db.putFile(m, data)
-    return toRecord(m)
+    return { ...toRecord(m), revision: ++revision }
   },
 
   async exportDocument(id) {
@@ -147,6 +154,8 @@ export const mockApi: NativeApi = {
     return () => {} // nothing opens files from outside the browser tab
   },
   async onDocumentsRemoved() { return () => {} },
+  async onDocumentsChanged() { return () => {} },
+  async onLibrarySyncState() { return () => {} },
   async pickSaveFolder() {
     throw Object.assign(new Error('Choosing a folder needs the Android app'), { code: 'INVALID_ARGUMENT' })
   },

@@ -19,6 +19,8 @@ import androidx.room.PrimaryKey
         // History tab: most recently opened first.
         Index(value = ["last_opened_at"], orders = [Index.Order.DESC], name = "idx_doc_recent"),
         Index(value = ["modified_at"], orders = [Index.Order.DESC], name = "idx_doc_modified"),
+        Index(value = ["source_key"], unique = true, name = "idx_doc_source_key"),
+        Index(value = ["local_path"], unique = true, name = "idx_doc_local_path"),
     ],
 )
 data class DocumentEntity(
@@ -42,4 +44,11 @@ data class DocumentEntity(
     @ColumnInfo(name = "added_at") val addedAt: Long,
     /** Actual file modification time, in epoch milliseconds; null if the provider does not report it. */
     @ColumnInfo(name = "modified_at") val modifiedAt: Long? = null,
+    /** MediaStore volume/version/id/generation-added identity; never inferred from a name or size. */
+    @ColumnInfo(name = "source_key") val sourceKey: String? = null,
+    /** Hidden tombstone retains a provider identity across move notification delays. No file is deleted. */
+    @ColumnInfo(name = "is_missing", defaultValue = "0") val isMissing: Boolean = false,
+    /** Canonical path, when known. Prevents a SAF/MediaStore URI and FileObserver creating duplicate rows. */
+    @ColumnInfo(name = "local_path") val localPath: String? = null,
+    @ColumnInfo(name = "source_name") val sourceName: String? = null,
 )

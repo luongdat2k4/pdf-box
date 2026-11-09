@@ -10,6 +10,7 @@ import vn.alf.pdftoolbox.library.model.SaveMode
 import vn.alf.pdftoolbox.library.model.Settings
 import vn.alf.pdftoolbox.library.model.SettingsPatch
 import vn.alf.pdftoolbox.library.model.invalid
+import vn.alf.pdftoolbox.library.files.LibrarySyncStatus
 
 /*
  * Conversions between the native model and the JSON the WebView sees (field names match `DocumentRecord`
@@ -39,6 +40,13 @@ fun DocumentEntity.toJson(): JSObject = JSObject().apply {
 }
 
 fun List<DocumentEntity>.toJsonArray(): JSArray = JSArray().also { array -> forEach { array.put(it.toJson()) } }
+
+fun LibrarySyncStatus.toJson(): JSObject = JSObject().apply {
+    put("hasAccess", hasAccess); put("initialization", initialization); put("phase", phase)
+    put("processed", processed); put("observers", observers); put("directoriesRead", directoriesRead)
+    put("filesRead", filesRead); put("syncTasks", syncTasks)
+    putNullable("lastSuccessAt", lastSuccessAt); putNullable("error", error)
+}
 
 fun Settings.toJson(): JSObject = JSObject().apply {
     put("saveMode", saveMode.value)

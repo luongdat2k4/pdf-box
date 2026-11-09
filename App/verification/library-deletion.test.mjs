@@ -14,7 +14,7 @@ function library(api) {
   const modules = {
     vue: { ref: value => ({ value }), computed: get => ({ get value() { return get() } }) },
     pinia: { defineStore: (_name, setup) => setup },
-    '../api/native-api': { api },
+    '../api/native-api': { api: { getLibrarySnapshot: async () => ({ documents: await api.listDocuments(), revision: 0 }), ...api } },
     './types': { EXT_KIND: { pdf: 'pdf' }, kindOf: name => name.endsWith('.pdf') ? 'pdf' : null },
   }
   vm.runInNewContext(compiled, { exports, require: id => modules[id] })

@@ -1,7 +1,7 @@
 # Thiết kế schema cho app đọc, chỉnh sửa và tạo tài liệu
 
 > Trạng thái: **bản nháp để thảo luận**, chưa chốt.
-> Hướng thiết kế: **SQLite và logic dữ liệu nằm ở tầng native Android; `App/src` là giao diện.** Một bảng `document`.
+> SQLite và logic dữ liệu nằm ở tầng native Android; `App/src` là giao diện. Room v3 gồm `document` và ba bảng checkpoint đồng bộ.
 > Hợp đồng giữa hai tầng: [`native-api.md`](native-api.md). Tài liệu từng chức năng: [`features/README.md`](features/README.md).
 
 ## Tổng quan cấu trúc
@@ -51,7 +51,24 @@ Dữ liệu chia thành **bốn tầng**, theo mức độ bền:
 | Bản xuất ra ngoài | `Documents/PDFToolbox/` | tên file | Ngoài app | Có sẵn |
 | Chú thích, bookmark, phiên quét, lịch sử thao tác, thẻ, thư mục | — | — | — | **Không có**, xem mục 7 |
 
-Trong tầng bền chỉ có **một bảng** `document`.
+Room v3 có bảng nội dung `document` và ba bảng checkpoint phục vụ đồng bộ theo sự kiện (bên dưới). Nội dung file vẫn nằm ngoài DB.
+
+### Checkpoint đồng bộ — Room v3 (09/11/2026)
+
+Migration `2 → 3` giữ các hàng hiện có, bổ sung các cột nội bộ nullable `source_key`, `local_path`, `source_name` và `is_missing INTEGER NOT NULL DEFAULT 0` cho `document`:
+
+- `source_key`: volume/version/MediaStore ID/generation-added; UNIQUE khi khác null. Chỉ dùng chứng cứ identity từ provider để giữ ID khi di chuyển.
+- `local_path`: canonical path nếu xác định được; UNIQUE khi khác null, chống cùng file xuất hiện qua nhiều URI.
+- `source_name`: tên từ nguồn, phân biệt đổi tên thực tế với nhãn do người dùng sửa.
+- `is_missing`: tombstone ẩn khỏi snapshot; giữ yêu thích/lịch sử/tiến độ khi còn chờ provider xác nhận di chuyển hoặc xóa. Không xóa nội dung file.
+
+| Bảng | Cột | Ý nghĩa |
+|---|---|---|
+| `library_state` | `id=1`, `revision`, `status`, `indexVersion`, `lastSuccessAt` | Trạng thái khởi tạo độc lập với quyền; revision tăng bằng trigger INSERT/UPDATE/DELETE document trong cùng transaction |
+| `library_directory` | `path` PK, `modifiedAt` | Thư mục đã duyệt thành công, kể cả chưa chứa tài liệu; thời gian lấy trước khi liệt kê để bắt lại thay đổi đồng thời |
+| `library_source` | `volume` PK, `version`, `generation` | Checkpoint MediaStore lấy trước truy vấn, chỉ ghi sau khi xử lý thành công |
+
+Không dùng destructive migration. Bản nâng cấp bắt đầu `not_started` dù đã có document. Nếu bị tắt ở trạng thái `running`, lần sau chạy lại an toàn, dùng URI/path/identity để chống trùng. Chỉ đánh dấu `complete` sau lượt quét và kiểm tra bù. Mất quyền/tháo volume không xóa checkpoint hoặc hàng tài liệu. Snapshot đọc document còn hiện và revision trong một Room transaction; không stat file.
 
 ### Quan hệ và bất biến
 

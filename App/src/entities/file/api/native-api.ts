@@ -4,6 +4,8 @@ import { mockApi } from './mock'
 
 /** One library row as the native side returns it. Mirrors design-note/native-api.md section 3. */
 export interface DocumentRecord {
+  /** Revision of a native mutation response; omitted on snapshot rows. */
+  revision?: number
   id: string
   storage: 'app' | 'external'
   location: string
@@ -43,10 +45,12 @@ export interface OpenedEvent {
 export interface NativeApi {
   getLibraryAccess(): Promise<LibraryAccess>
   requestLibraryAccess(): Promise<LibraryAccess>
-  scanLibrary(accept: string[]): Promise<{ count: number }>
+  syncLibrary(accept: string[]): Promise<LibrarySyncState>
+  scanLibrary(accept: string[]): Promise<LibrarySyncState>
+  getLibrarySnapshot(): Promise<LibrarySnapshot>
   listDocuments(): Promise<DocumentRecord[]>
   updateDocument(id: string, patch: DocumentPatch): Promise<DocumentRecord>
-  removeDocuments(ids: string[]): Promise<void>
+  removeDocuments(ids: string[]): Promise<{ revision: number }>
 
   importFromDevice(opts: {
     accept: string[]
@@ -71,6 +75,23 @@ export interface NativeApi {
   onDocumentOpened(cb: (e: OpenedEvent) => void): Promise<() => void>
   /** Actual deletions made in the app or detected on device storage. */
   onDocumentsRemoved(cb: (ids: string[]) => void): Promise<() => void>
+  onDocumentsChanged(cb: (change: LibraryChange) => void): Promise<() => void>
+  onLibrarySyncState(cb: (state: LibrarySyncState) => void): Promise<() => void>
+}
+
+export interface LibrarySnapshot { documents: DocumentRecord[]; revision: number }
+export interface LibraryChange { revision: number; upserted: DocumentRecord[]; removedIds: string[] }
+export interface LibrarySyncState {
+  hasAccess: boolean
+  initialization: 'not_started' | 'running' | 'complete' | 'interrupted'
+  phase: 'idle' | 'permission_required' | 'indexing' | 'updating' | 'error'
+  processed: number
+  observers?: number
+  directoriesRead?: number
+  filesRead?: number
+  syncTasks?: number
+  lastSuccessAt?: number | null
+  error?: string | null
 }
 
 export interface LibraryAccess {

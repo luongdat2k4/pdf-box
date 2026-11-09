@@ -1,16 +1,17 @@
 import { registerPlugin, type PluginListenerHandle } from '@capacitor/core'
 import { askConfirm } from '@/shared/ui'
 import { t, type MessageKey } from '@/shared/i18n'
-import type { DocumentPatch, DocumentRecord, LibraryAccess, NativeApi, OpenedEvent, Settings } from './native-api'
+import type { DocumentPatch, DocumentRecord, LibraryAccess, LibraryChange, LibrarySnapshot, LibrarySyncState, NativeApi, OpenedEvent, Settings } from './native-api'
 
 /** Raw commands of the Kotlin `Library` plugin (design-note/native-api.md, "Lệnh của plugin"). */
 interface LibraryPlugin {
   getLibraryAccess(): Promise<LibraryAccess>
   requestLibraryAccess(): Promise<LibraryAccess>
-  scanLibrary(o: { accept: string[] }): Promise<{ count: number }>
-  listDocuments(): Promise<{ documents: DocumentRecord[] }>
+  syncLibrary(o: { accept: string[] }): Promise<LibrarySyncState>
+  scanLibrary(o: { accept: string[] }): Promise<LibrarySyncState>
+  listDocuments(): Promise<LibrarySnapshot>
   updateDocument(o: { id: string; patch: DocumentPatch }): Promise<{ document: DocumentRecord }>
-  removeDocuments(o: { ids: string[] }): Promise<void>
+  removeDocuments(o: { ids: string[] }): Promise<{ revision: number }>
   importFromDevice(o: { accept: string[]; multiple: boolean; mode: 'copy' | 'link' }): Promise<{
     added: DocumentRecord[]
     skipped: string[]
@@ -29,6 +30,8 @@ interface LibraryPlugin {
   pickSaveFolder(): Promise<Settings>
   addListener(event: 'documentOpened', cb: (e: OpenedEvent) => void): Promise<PluginListenerHandle>
   addListener(event: 'documentsRemoved', cb: (e: { ids: string[] }) => void): Promise<PluginListenerHandle>
+  addListener(event: 'documentsChanged', cb: (e: LibraryChange) => void): Promise<PluginListenerHandle>
+  addListener(event: 'librarySyncState', cb: (e: LibrarySyncState) => void): Promise<PluginListenerHandle>
 }
 
 const Library = registerPlugin<LibraryPlugin>('Library')
@@ -110,6 +113,8 @@ export const nativeApi: NativeApi = {
   getLibraryAccess: () => call(Library.getLibraryAccess()),
   requestLibraryAccess: () => call(Library.requestLibraryAccess()),
   scanLibrary: (accept) => call(Library.scanLibrary({ accept })),
+  syncLibrary: (accept) => call(Library.syncLibrary({ accept })),
+  getLibrarySnapshot: () => call(Library.listDocuments()),
   async listDocuments() {
     return (await call(Library.listDocuments())).documents
   },
@@ -117,7 +122,7 @@ export const nativeApi: NativeApi = {
     return (await call(Library.updateDocument({ id, patch }))).document
   },
   async removeDocuments(ids) {
-    await call(Library.removeDocuments({ ids }))
+    return await call(Library.removeDocuments({ ids }))
   },
 
   importFromDevice: (opts) => call(Library.importFromDevice(opts)),
@@ -158,6 +163,14 @@ export const nativeApi: NativeApi = {
   },
   async onDocumentsRemoved(cb) {
     const handle = await Library.addListener('documentsRemoved', ({ ids }) => cb(ids))
+    return () => void handle.remove()
+  },
+  async onDocumentsChanged(cb) {
+    const handle = await Library.addListener('documentsChanged', cb)
+    return () => void handle.remove()
+  },
+  async onLibrarySyncState(cb) {
+    const handle = await Library.addListener('librarySyncState', cb)
     return () => void handle.remove()
   },
 }

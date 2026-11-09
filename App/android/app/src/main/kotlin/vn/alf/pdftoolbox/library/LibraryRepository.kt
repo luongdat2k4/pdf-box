@@ -8,6 +8,10 @@ import android.provider.MediaStore
 import android.util.Log
 import androidx.annotation.RequiresApi
 import androidx.core.content.FileProvider
+import androidx.room.withTransaction
+import vn.alf.pdftoolbox.library.db.AppDatabase
+import vn.alf.pdftoolbox.library.model.LibraryDirectory
+import vn.alf.pdftoolbox.library.model.LibrarySnapshot
 import java.io.File
 import java.io.FileInputStream
 import java.io.FileNotFoundException
@@ -67,14 +71,27 @@ class LibraryRepository(
     private val settingsStore: SettingsStore,
     private val clock: () -> Long = { System.currentTimeMillis() },
     private val newId: () -> String = { UUID.randomUUID().toString() },
+    private val database: AppDatabase = AppDatabase.get(context),
+    val deviceStorage: DeviceStorage = DeviceStorage(context),
 ) {
+    val index get() = database.libraryIndexDao()
+    fun observeDocuments() = dao.observeChanges()
+    suspend fun versioned(ids: List<String>): Pair<Long, List<DocumentEntity>> = database.withTransaction {
+        index.state().revision to dao.getByIds(ids)
+    }
+    suspend fun revision(): Long = index.state().revision
+
+    suspend fun snapshot(): LibrarySnapshot = database.withTransaction {
+        val started = android.os.SystemClock.elapsedRealtime()
+        LibrarySnapshot(dao.visible(), index.state().revision).also {
+            Log.d(TAG, "DB snapshot rows=${it.documents.size} durationMs=${android.os.SystemClock.elapsedRealtime() - started}")
+        }
+    }
     private val locks = ConcurrentHashMap<String, Mutex>()
 
     /** Held while an app file and its row are being created, and while orphans are collected. */
     private val contentGate = Mutex()
     private val scanGate = Mutex()
-
-    private val deviceStorage = DeviceStorage(context)
 
     suspend fun libraryAccess(): Pair<Boolean, Boolean> =
         deviceStorage.hasAccess() to settingsStore.libraryPrompted()
@@ -82,20 +99,166 @@ class LibraryRepository(
     suspend fun markLibraryPrompted() = settingsStore.markLibraryPrompted()
 
     /** Automatically indexes supported shared-storage files after the system grants storage access. */
-    suspend fun scanLibrary(filter: ExtensionFilter): Int = scanGate.withLock {
-        deviceStorage.scan(filter) { uri, info ->
-            val location = uri.toString()
-            locked("uri:$location") {
-                val existing = dao.find(Storage.EXTERNAL, location)
-                if (existing == null) {
-                    dao.insert(newEntity(newId(), Storage.EXTERNAL, location, info.name,
-                        MimeTypes.resolve(info.mimeType, info.name), info.sizeBytes, info.modifiedAt))
-                } else locked(existing.id) {
-                    dao.get(existing.id)?.let { current ->
-                        dao.update(current.copy(sizeBytes = info.sizeBytes, mimeType = MimeTypes.resolve(info.mimeType, info.name), modifiedAt = info.modifiedAt ?: current.modifiedAt))
-                    }
-                }
+    suspend fun scanLibrary(
+        filter: ExtensionFilter,
+        onDirectory: (File) -> Unit = {},
+        onProgress: (Int) -> Unit = {},
+    ): Int = scanGate.withLock {
+        index.setState("running", INDEX_VERSION, index.state().lastSuccessAt)
+        try {
+            // Existing v2 SAF links gain physical identity once, before discovery can see the same file.
+            for (doc in dao.getAll().filter { it.storage == Storage.EXTERNAL && it.localPath == null }) {
+                val path = deviceStorage.importPath(Uri.parse(doc.location)) ?: continue
+                if (dao.findPath(path) == null) dao.update(doc.copy(localPath = path))
             }
+            val batch = mutableListOf<Pair<Uri, ExternalContentStore.Info>>()
+            var processed = 0
+            suspend fun flush() {
+                if (batch.isEmpty()) return
+                database.withTransaction { for ((uri, info) in batch) upsertObserved(uri, info) }
+                processed += batch.size
+                batch.clear()
+                onProgress(processed)
+            }
+            val count = deviceStorage.scan(filter, onDirectory = onDirectory, onListed = { dir, time ->
+                flush()
+                index.putDirectory(LibraryDirectory(dir.canonicalPath, time))
+            }) { uri, info ->
+                batch += uri to info
+                if (batch.size >= 64) flush()
+            }
+            flush()
+            // Completion is written by the coordinator only AFTER catch-up succeeds.
+            count
+        } catch (t: Throwable) {
+            kotlinx.coroutines.withContext(kotlinx.coroutines.NonCancellable) {
+                index.setState("interrupted", INDEX_VERSION, index.state().lastSuccessAt)
+            }
+            throw t
+        }
+    }
+
+    /** Only observation metadata changes; favorites, history and reading progress survive. Caller holds scanGate. */
+    private suspend fun upsertObserved(uri: Uri, info: ExternalContentStore.Info, sourceKey: String? = null) {
+        val location = uri.toString()
+        val path = external.localFile(uri)?.canonicalPath
+        val atLocation = dao.find(Storage.EXTERNAL, location) ?: path?.let { dao.findPath(it) }
+        val identified = sourceKey?.let { dao.findSource(it) }
+        // A stable provider identity can prove a move. Never match by filename or byte count.
+        var existing = identified ?: atLocation
+        if (identified != null && atLocation != null && identified.id != atLocation.id) {
+            if (atLocation.sourceKey != null) return // Conflicting provider identities are never guessed.
+            // Discovery may precede the provider's move event. Same provider identity now proves the move.
+            val reading = if ((identified.lastOpenedAt ?: 0) >= (atLocation.lastOpenedAt ?: 0)) identified else atLocation
+            existing = identified.copy(isFavorite = identified.isFavorite || atLocation.isFavorite,
+                lastOpenedAt = reading.lastOpenedAt, lastPage = reading.lastPage, lastZoom = reading.lastZoom)
+            dao.deleteByIds(listOf(atLocation.id)) // Metadata only; the destination file is untouched.
+        }
+        if (existing == null) {
+            dao.insert(newEntity(newId(), Storage.EXTERNAL, location, info.name,
+                MimeTypes.resolve(info.mimeType, info.name), info.sizeBytes, info.modifiedAt).copy(sourceKey = sourceKey, localPath = path))
+        } else {
+            val moved = existing.localPath != null && path != null && existing.localPath != path
+            val next = existing.copy(location = if (moved) location else existing.location, isMissing = false, localPath = path ?: existing.localPath,
+                displayName = if (moved || existing.displayName == existing.sourceName) info.name else existing.displayName,
+                sourceName = info.name,
+                sizeBytes = info.sizeBytes, mimeType = MimeTypes.resolve(info.mimeType, info.name),
+                modifiedAt = info.modifiedAt ?: existing.modifiedAt, sourceKey = sourceKey ?: existing.sourceKey)
+            if (next != existing) dao.update(next)
+        }
+    }
+
+    suspend fun observeFile(file: File, filter: ExtensionFilter, sourceKey: String? = null) = scanGate.withLock {
+        if (filter.allows(file.name)) deviceStorage.describe(file)?.let { info ->
+            database.withTransaction { upsertObserved(deviceStorage.uri(file), info, sourceKey) }
+        }
+    }
+
+    /** Lists ONLY this subtree. New/empty folders are also registered, before reading their children. */
+    suspend fun reconcileDirectory(directory: File, filter: ExtensionFilter, known: Set<String>, watch: (File) -> Unit) = scanGate.withLock {
+        val batch = mutableListOf<Pair<Uri, ExternalContentStore.Info>>()
+        suspend fun flush() {
+            if (batch.isEmpty()) return
+            database.withTransaction { for ((uri, info) in batch) upsertObserved(uri, info) }
+            batch.clear()
+        }
+        deviceStorage.scan(filter, start = listOf(directory), onDirectory = watch, onListed = { dir, time ->
+            flush()
+            index.putDirectory(LibraryDirectory(dir.canonicalPath, time))
+        }, descend = { it.canonicalPath !in known }) { uri, info ->
+            batch += uri to info
+            if (batch.size >= 64) flush()
+        }
+        flush()
+    }
+
+    suspend fun pruneScope(directory: File? = null, provider: String? = null): List<String> = scanGate.withLock {
+        val removed = mutableListOf<String>()
+        for (doc in dao.getAll()) {
+            val file = localFile(doc)
+            val inScope = if (directory != null) file?.let {
+                it.path == directory.path || it.path.startsWith(directory.path + File.separator)
+            } == true else provider != null && doc.storage == Storage.EXTERNAL && Uri.parse(doc.location).authority == provider
+            if (!inScope) continue
+            val missing = if (doc.storage == Storage.APP) !app.exists(doc.location)
+                else external.isMissing(doc.localPath?.let { deviceStorage.uri(File(it)) } ?: Uri.parse(doc.location))
+            if (missing) {
+                if (doc.sourceKey != null) {
+                    if (!doc.isMissing) dao.update(doc.copy(isMissing = true))
+                } else {
+                    dao.deleteByIds(listOf(doc.id))
+                    if (doc.storage == Storage.EXTERNAL) external.release(Uri.parse(doc.location))
+                }
+                removed += doc.id
+            }
+        }
+        removed
+    }
+
+    fun localFile(doc: DocumentEntity): File? = when (doc.storage) {
+        Storage.APP -> app.resolve(doc.location)
+        Storage.EXTERNAL -> doc.localPath?.let(::File) ?: external.localFile(Uri.parse(doc.location))
+    }
+
+    /** A MediaStore inventory confirms deletion; a generation delta alone cannot do that. */
+    suspend fun pruneSource(prefix: String, liveKeys: Set<String>) = scanGate.withLock {
+        for (doc in dao.getAll().filter { it.sourceKey?.startsWith(prefix) == true && it.sourceKey !in liveKeys }) {
+            if (doc.storage == Storage.EXTERNAL && external.isMissing(doc.localPath?.let { deviceStorage.uri(File(it)) } ?: Uri.parse(doc.location))) {
+                dao.deleteByIds(listOf(doc.id))
+            }
+        }
+    }
+
+    suspend fun refreshAppFiles() = scanGate.withLock {
+        for (doc in dao.getAll().filter { it.storage == Storage.APP }) {
+            val file = app.resolve(doc.location)
+            if (!file.isFile) dao.deleteByIds(listOf(doc.id))
+            else {
+                val next = doc.copy(sizeBytes = file.length(), modifiedAt = file.lastModified().takeIf { it > 0 })
+                if (next != doc) dao.update(next)
+            }
+        }
+    }
+
+    suspend fun providerAuthorities(): Set<String> = dao.getAll().filter {
+        it.storage == Storage.EXTERNAL && it.localPath == null && external.localFile(Uri.parse(it.location)) == null
+    }.mapNotNull { Uri.parse(it.location).authority }.toSet()
+
+    suspend fun reconcileProvider(authority: String, location: String? = null) = scanGate.withLock {
+        val exact = location?.let { dao.find(Storage.EXTERNAL, it) }
+        val entries = exact?.let { listOf(it) } ?: dao.getAll().filter { it.storage == Storage.EXTERNAL && Uri.parse(it.location).authority == authority }
+        for (entry in entries) {
+            if (external.isMissing(Uri.parse(entry.location))) {
+                dao.deleteByIds(listOf(entry.id))
+                external.release(Uri.parse(entry.location))
+            } else try {
+                val info = external.describe(Uri.parse(entry.location))
+                val next = entry.copy(displayName = if (entry.displayName == entry.sourceName) info.name else entry.displayName,
+                    sourceName = info.name, sizeBytes = info.sizeBytes ?: entry.sizeBytes,
+                    modifiedAt = info.modifiedAt ?: entry.modifiedAt)
+                if (next != entry) dao.update(next)
+            } catch (e: CancellationException) { throw e }
+            catch (_: Exception) { /* Inaccessible providers retain their metadata. */ }
         }
     }
 
@@ -106,18 +269,7 @@ class LibraryRepository(
 
     // ---- library ---------------------------------------------------------------------------------------------
 
-    suspend fun list(): List<DocumentEntity> {
-        // Backfill and refresh from the file itself, without changing addedAt or user metadata.
-        for (entry in dao.getAll()) {
-            val time = try { fileTime(entry) } catch (_: Exception) { null }
-            if (time != null && time != entry.modifiedAt) locked(entry.id) {
-                val current = dao.get(entry.id) ?: return@locked
-                // A concurrent save may already have supplied a newer timestamp.
-                if (current.modifiedAt == entry.modifiedAt) dao.update(current.copy(modifiedAt = time))
-            }
-        }
-        return dao.getAll()
-    }
+    suspend fun list(): List<DocumentEntity> = dao.visible()
 
     private fun fileTime(doc: DocumentEntity): Long? = when (doc.storage) {
         Storage.APP -> app.resolve(doc.location).lastModified().takeIf { it > 0 }
@@ -126,7 +278,7 @@ class LibraryRepository(
 
     suspend fun get(id: String): DocumentEntity = requireDocument(id)
 
-    suspend fun update(id: String, patch: DocumentPatch): DocumentEntity = locked(id) {
+    suspend fun update(id: String, patch: DocumentPatch): DocumentEntity = scanGate.withLock {
         val next = requireDocument(id).applyPatch(patch)
         dao.update(next)
         next
@@ -157,49 +309,13 @@ class LibraryRepository(
         }
     }
 
-    /** Only remove stale metadata when the underlying file is positively known to be gone. */
-    suspend fun pruneMissing(): List<String> = scanGate.withLock {
-        val removed = mutableListOf<String>()
-        for (entry in dao.getAll()) locked(entry.id) {
-            val doc = dao.get(entry.id) ?: return@locked
-            val missing = when (doc.storage) {
-                Storage.APP -> !app.exists(doc.location)
-                Storage.EXTERNAL -> external.isMissing(Uri.parse(doc.location))
-            }
-            if (missing) {
-                dao.deleteByIds(listOf(doc.id))
-                if (doc.storage == Storage.EXTERNAL) external.release(Uri.parse(doc.location))
-                removed += doc.id
-            }
-        }
-        removed
-    }
-
-    suspend fun watchTargets(): Pair<Set<File>, Set<Uri>> {
-        val directories = mutableSetOf<File>()
-        val providers = mutableSetOf<Uri>()
-        for (doc in dao.getAll()) {
-            val file = when (doc.storage) {
-                Storage.APP -> app.resolve(doc.location)
-                Storage.EXTERNAL -> {
-                    val uri = Uri.parse(doc.location)
-                    val local = external.localFile(uri)
-                    if (local == null) providers += Uri.Builder().scheme("content").authority(uri.authority).build()
-                    local
-                }
-            }
-            file?.parentFile?.let { directories += it }
-        }
-        return directories to providers
-    }
-
     // ---- import ----------------------------------------------------------------------------------------------
 
     /**
      * Imports the files the user picked. Files outside [filter] are reported in `skipped`. A file that fails to
      * import is also reported in `skipped`; only if nothing at all could be imported does the call fail.
      */
-    suspend fun importPicked(picked: List<PickedUri>, filter: ExtensionFilter, mode: ImportMode): ImportResult {
+    suspend fun importPicked(picked: List<PickedUri>, filter: ExtensionFilter, mode: ImportMode): ImportResult = scanGate.withLock {
         val added = mutableListOf<DocumentEntity>()
         val skipped = mutableListOf<String>()
         var failures = 0
@@ -226,16 +342,18 @@ class LibraryRepository(
             }
         }
         if (added.isEmpty() && failures > 0) throw LibraryException(ErrorCode.IO_ERROR, "Could not import any of the files")
-        return ImportResult(added, skipped)
+        ImportResult(added, skipped)
     }
 
     private suspend fun importOne(p: PickedUri, info: ExternalContentStore.Info, mode: ImportMode): DocumentEntity {
+        val localPath = if (mode == ImportMode.LINK) deviceStorage.importPath(p.uri) else null
+        localPath?.let { dao.findPath(it)?.let { existing -> return existing } }
         // A provider may refuse persistent access; then a link would die on restart, so copy instead.
         if (mode == ImportMode.LINK && external.persist(p.uri, p.grantedFlags)) {
             val location = p.uri.toString()
             return locked("uri:$location") {
                 dao.find(Storage.EXTERNAL, location)?.let { return@locked it } // already linked
-                val entity = newEntity(newId(), Storage.EXTERNAL, location, info.name, MimeTypes.resolve(info.mimeType, info.name), info.sizeBytes, info.modifiedAt)
+                val entity = newEntity(newId(), Storage.EXTERNAL, location, info.name, MimeTypes.resolve(info.mimeType, info.name), info.sizeBytes, info.modifiedAt).copy(localPath = localPath)
                 try {
                     dao.insert(entity)
                 } catch (t: Throwable) {
@@ -267,17 +385,17 @@ class LibraryRepository(
     // ---- creating new documents (saveOutput) -----------------------------------------------------------------
 
     /** Saves [temp] into the app's private storage. [temp] is consumed. */
-    suspend fun saveToApp(temp: File, name: String, mimeType: String?): DocumentEntity {
+    suspend fun saveToApp(temp: File, name: String, mimeType: String?): DocumentEntity = scanGate.withLock {
         val clean = name.trim()
         if (clean.isEmpty()) throw invalid("name must not be blank")
         val id = newId()
         val entity = newEntity(id, Storage.APP, app.newLocation(id, clean), clean, MimeTypes.resolve(mimeType, clean), temp.length(), temp.lastModified().takeIf { it > 0 })
         insertAppDocument(temp, entity)
-        return entity
+        entity
     }
 
     /** Saves [temp] into the folder chosen in settings. [temp] is left for the caller to delete. */
-    suspend fun saveToFolder(temp: File, name: String, mimeType: String?): DocumentEntity {
+    suspend fun saveToFolder(temp: File, name: String, mimeType: String?): DocumentEntity = scanGate.withLock {
         val clean = name.trim()
         if (clean.isEmpty()) throw invalid("name must not be blank")
         val mime = MimeTypes.resolve(mimeType, clean)
@@ -291,15 +409,15 @@ class LibraryRepository(
             external.deleteQuietly(uri) // do not leave an empty file behind
             throw t
         }
-        return insertExternal(uri, clean, mime, temp.length())
+        insertExternal(uri, clean, mime, temp.length())
     }
 
     /** Saves [temp] to a location the user just chose with the system "create document" picker. */
-    suspend fun saveToUri(temp: File, name: String, mimeType: String?, uri: Uri, grantedFlags: Int): DocumentEntity {
+    suspend fun saveToUri(temp: File, name: String, mimeType: String?, uri: Uri, grantedFlags: Int): DocumentEntity = scanGate.withLock {
         val mime = MimeTypes.resolve(mimeType, name)
         external.overwrite(uri, temp)
         external.persist(uri, grantedFlags) // best effort; without it the link works until the next restart
-        return insertExternal(uri, name, mime, temp.length())
+        insertExternal(uri, name, mime, temp.length())
     }
 
     private suspend fun insertExternal(uri: Uri, requestedName: String, mime: String, size: Long): DocumentEntity {
@@ -309,8 +427,11 @@ class LibraryRepository(
         } catch (_: LibraryException) {
             requestedName
         }
-        val entity = newEntity(newId(), Storage.EXTERNAL, uri.toString(), actualName, mime, size, external.modifiedAt(uri))
-        dao.insert(entity)
+        val localPath = deviceStorage.importPath(uri)
+        val existing = dao.find(Storage.EXTERNAL, uri.toString()) ?: localPath?.let { dao.findPath(it) }
+        val entity = existing?.copy(sizeBytes = size, modifiedAt = external.modifiedAt(uri), isMissing = false)
+            ?: newEntity(newId(), Storage.EXTERNAL, uri.toString(), actualName, mime, size, external.modifiedAt(uri)).copy(localPath = localPath)
+        if (existing == null) dao.insert(entity) else dao.update(entity)
         return entity
     }
 
@@ -331,12 +452,13 @@ class LibraryRepository(
             id = id, storage = storage, location = location, displayName = name, mimeType = mime,
             sizeBytes = size, pageCount = null, isEncrypted = false, isFavorite = false,
             lastPage = 0, lastZoom = null, lastOpenedAt = null, addedAt = clock(), modifiedAt = modifiedAt,
+            sourceName = name,
         )
 
     // ---- content ---------------------------------------------------------------------------------------------
 
     /** Replaces a document's content (annotations are burned into the PDF by the WebView). [temp] is consumed. */
-    suspend fun replaceContent(id: String, temp: File): DocumentEntity = locked(id) {
+    suspend fun replaceContent(id: String, temp: File): DocumentEntity = scanGate.withLock {
         val doc = requireDocument(id)
         val size = temp.length()
         when (doc.storage) {
@@ -410,6 +532,7 @@ class LibraryRepository(
             resolver.delete(uri, null, null) // never leave a half-written pending file
             throw t
         }
+        scanGate.withLock { insertExternal(uri, name, doc.mimeType, external.describe(uri).sizeBytes ?: doc.sizeBytes ?: 0) }
         return "$EXPORT_DIR/$name"
     }
 
@@ -483,6 +606,7 @@ class LibraryRepository(
     }
 
     companion object {
+        const val INDEX_VERSION = 1
         private const val TAG = "LibraryRepository"
         const val MAX_CHUNK = 4 * 1024 * 1024
         private const val STALE_TEMP_MS = 24L * 60 * 60 * 1000

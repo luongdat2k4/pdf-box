@@ -27,6 +27,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.flow.collect
 import org.json.JSONException
 import org.json.JSONObject
 import vn.alf.pdftoolbox.library.LibraryRepository
@@ -64,7 +65,24 @@ class LibraryPlugin : Plugin() {
         val services = LibraryServices.get(context)
         repo = services.repository
         sessions = services.writeSessions
-        watcher = LibraryWatcher(context, repo, scope, ::notifyRemoved)
+        watcher = LibraryWatcher(context, repo, scope) { status ->
+            notifyListeners("librarySyncState", status.toJson())
+        }
+        scope.launch {
+            var previous = emptyMap<String, DocumentEntity>()
+            repo.observeDocuments().collect {
+                // The rows and revision share one Room transaction, including all app-originated writes.
+                val snapshot = repo.snapshot()
+                val current = snapshot.documents.associateBy { it.id }
+                val changed = current.values.filter { previous[it.id] != it }
+                val removed = previous.keys - current.keys
+                if (changed.isNotEmpty() || removed.isNotEmpty()) {
+                    notifyListeners("documentsChanged", JSObject().put("revision", snapshot.revision)
+                        .put("upserted", changed.toJsonArray()).put("removedIds", JSArray(removed.toList())))
+                }
+                previous = current
+            }
+        }
         // A cold start through "Open with" carries the file in the launch intent.
         activity?.intent?.let { handleViewIntent(it) }
         // Housekeeping must never delay or break startup.
@@ -128,15 +146,15 @@ class LibraryPlugin : Plugin() {
     }
 
     private fun notifyRemoved(ids: List<String>) {
-        notifyListeners("documentsRemoved", JSObject().put("ids", JSArray(ids)), true)
+        notifyListeners("documentsRemoved", JSObject().put("ids", JSArray(ids)))
     }
 
     // ---- library -------------------------------------------------------------------------------------------------
 
     @PluginMethod
     fun listDocuments(call: PluginCall) = launchCall(call) {
-        watcher.refresh()
-        JSObject().put("documents", repo.list().toJsonArray())
+        val snapshot = repo.snapshot()
+        JSObject().put("documents", snapshot.documents.toJsonArray()).put("revision", snapshot.revision)
     }
 
     @PluginMethod
@@ -160,7 +178,7 @@ class LibraryPlugin : Plugin() {
             if (removed.isNotEmpty()) notifyRemoved(removed)
             watcher.refresh()
         }
-        null
+        JSObject().put("revision", repo.revision())
     }
 
     // ---- import --------------------------------------------------------------------------------------------------
@@ -207,7 +225,12 @@ class LibraryPlugin : Plugin() {
 
     @PluginMethod
     fun scanLibrary(call: PluginCall) = launchCall(call) {
-        JSObject().put("count", repo.scanLibrary(ExtensionFilter(call.data.stringList("accept"))))
+        watcher.synchronize(ExtensionFilter(call.data.stringList("accept")), full = true).toJson()
+    }
+
+    @PluginMethod
+    fun syncLibrary(call: PluginCall) = launchCall(call) {
+        watcher.synchronize(ExtensionFilter(call.data.stringList("accept"))).toJson()
     }
 
     @PluginMethod
@@ -469,7 +492,28 @@ class LibraryPlugin : Plugin() {
         scope.launch {
             try {
                 val result = block()
-                if (result?.has("document") == true || result?.has("added") == true) watcher.refresh()
+                if (result?.has("document") == true || result?.has("added") == true) {
+                    val ids = mutableListOf<String>()
+                    if (result.has("document")) ids += result.getJSONObject("document").getString("id")
+                    if (result.has("added")) {
+                        val added = result.getJSONArray("added")
+                        for (i in 0 until added.length()) ids += added.getJSONObject(i).getString("id")
+                    }
+                    val (revision, documents) = repo.versioned(ids)
+                    val current = documents.associateBy { it.id }
+                    if (result.has("document")) {
+                        val id = result.getJSONObject("document").getString("id")
+                        current[id]?.let { result.put("document", it.toJson().put("revision", revision)) }
+                    }
+                    if (result.has("added")) {
+                        val added = result.getJSONArray("added")
+                        for (i in 0 until added.length()) {
+                            val id = added.getJSONObject(i).getString("id")
+                            current[id]?.let { added.put(i, it.toJson().put("revision", revision)) }
+                        }
+                    }
+                    watcher.refresh()
+                }
                 when {
                     result === DEFERRED -> Unit
                     result == null -> call.resolve()

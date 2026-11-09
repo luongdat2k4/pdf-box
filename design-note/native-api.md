@@ -1,7 +1,7 @@
 # Hợp đồng giữa WebView và tầng native
 
 > Trạng thái: **bản nháp để thảo luận**. Bổ sung cho [`schema.md`](schema.md) và [`features/README.md`](features/README.md).
-> **Phía Android đã được cài đặt** (mục 9) nhưng **WebView chưa gọi** và **chưa chạy trên thiết bị thật**.
+> Android và WebView đã nối với nhau; hợp đồng đồng bộ theo sự kiện cập nhật ngày 09/11/2026. Phạm vi kiểm chứng ghi tại [`file-library-sync.md`](file-library-sync.md).
 
 ## 1. Phân vai
 
@@ -57,25 +57,33 @@ Chọn adapter bằng `isNative()` (`App/src/shared/lib/platform.ts`).
 
 ## 3. Hợp đồng
 
-### Tự tìm tài liệu trên Home
+### Thư viện theo sự kiện (09/11/2026)
 
 **Danh sách lớn:** Home, trang tìm kiếm và `FileSelect` dùng `VirtualList` với dòng cao 64px, chỉ mount vùng nhìn thấy và đệm 5 dòng mỗi phía. Đổi tab, loại file hoặc truy vấn sẽ đưa danh sách về đầu. Tìm metadata chờ 160ms sau khi gõ, chuẩn hóa tiếng Việt không dấu, so khớp từng từ trong tên đầy đủ/đuôi file/MIME/loại file. Chuỗi chuẩn hóa được cache theo file, tự cập nhật khi đổi tên. Lọc tìm kiếm chạy theo đợt 512 file, nhường event loop và bỏ kết quả cũ khi truy vấn thay đổi. Store cache bảng tra theo ID và nhóm loại file; trạng thái chọn dùng Map. Nội dung file không được đọc để lọc/tìm. Hiện vẫn tải toàn bộ **metadata** vào bộ nhớ; virtual scroll giới hạn DOM, chưa phân trang ở native.
 
-Home (`/`, alias `/home`) dùng thêm ba lệnh của plugin `Library`:
+Vòng đời thư viện thuộc `App.vue` và `LibraryWatcher`, độc lập với màn hình Home:
 
 | Lệnh | Tham số | Kết quả |
 |------|---------|---------|
 | `getLibraryAccess` | — | `{ hasAccess: boolean, prompted: boolean }` |
 | `requestLibraryAccess` | — | Xin quyền bộ nhớ qua hệ thống rồi trả trạng thái thực tế như trên |
-| `scanLibrary` | `{ accept: string[] }` | `{ count: number }`, số file hỗ trợ tìm thấy |
+| `syncLibrary` | `{ accept: string[] }` | `LibrarySyncState`; chỉ khởi tạo toàn bộ nếu chưa hoàn tất, các lần sau kiểm tra bù |
+| `scanLibrary` | `{ accept: string[] }` | `LibrarySyncState`; yêu cầu quét lại toàn bộ có chủ đích |
+| `listDocuments` | — | `{ documents: DocumentRecord[], revision: number }`; snapshot nhất quán, chỉ đọc Room |
 
-- Không yêu cầu chọn file hoặc thư mục. Lần đầu vào Home nếu chưa có quyền, app tự xin quyền. Android 11+ dùng `MANAGE_EXTERNAL_STORAGE`, mở màn hình `ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION`; Android 10 trở xuống dùng popup quyền bộ nhớ (manifest giới hạn quyền đọc/ghi đến API 29, Android 10 bật `requestLegacyExternalStorage`).
+- Khởi động: đăng ký `documentsChanged` và `librarySyncState`, hiển thị snapshot DB trước, rồi kiểm tra quyền/khởi tạo. Lần đầu chưa hỏi quyền thì app tự xin một lần. Android 11+ dùng `MANAGE_EXTERNAL_STORAGE`; Android 10 trở xuống dùng quyền đọc/ghi (manifest giới hạn đến API 29, Android 10 bật `requestLegacyExternalStorage`).
 - Không dựa vào `RESULT_OK` của Settings: kiểm tra `Environment.isExternalStorageManager()` khi quay lại. Từ chối quyền vẫn giữ thư viện và nút “Cấp quyền”, không tự hỏi liên tục. DataStore giữ `device_storage_prompted`, độc lập với `save_mode`/`save_folder_uri`.
 - `DeviceStorage` quét bộ nhớ dùng chung và các volume gắn ngoài mà Android cho truy cập, bỏ qua thư mục bị bảo vệ như Android/data và Android/obb. Kiểm tra quyền và hủy coroutine trong lúc quét. Chỉ đọc metadata của file có đuôi do WebView truyền xuống.
 - File tìm thấy được lưu với `storage = external`, `location` là `content://` URI do FileProvider của app cấp cho file gốc trên bộ nhớ dùng chung. Không sao chép nội dung, không giữ quyền URI riêng từng file. Quyền đọc phụ thuộc quyền bộ nhớ của app; khi thu hồi quyền thì trả `PERMISSION_LOST`.
-- Quét lại khi vào Home, khi app trở lại foreground ở Home, hoặc nhấn “Quét lại”. Các yêu cầu đồng thời dùng chung một lượt quét. URI đã có được dùng lại, giữ ID, yêu thích và tiến độ đọc.
-- `LibraryWatcher` đối chiếu file đã bị xóa/di chuyển và gửi `documentsRemoved` cho WebView. Theo dõi bằng FileObserver/ContentObserver ở foreground, đối chiếu lại khi resume và mỗi 30 giây nếu provider bỏ lỡ thông báo. Mất quyền hoặc tháo thẻ nhớ không được coi là xóa file.
-- Trình duyệt dev giữ hành vi nhập file hiện tại, không xin quyền bộ nhớ. Cần kiểm chứng cấp/từ chối/thu hồi quyền, khởi động lại và quét trên Android thật.
+- Vào Home/chuyển tab không gọi đồng bộ. Resume được xử lý native: đăng ký lại observer từ checkpoint, so mtime thư mục để phát hiện thay đổi thành viên; chỉ liệt kê thư mục đổi và cây con mới. Nút “Cập nhật” gọi `syncLibrary`; Cài đặt có “Quét lại toàn bộ bộ nhớ”. Không có vòng quét 30 giây hoặc foreground service.
+- FileObserver đăng ký cả thư mục chưa có tài liệu, trước khi đọc nội dung. Theo dõi CREATE/CLOSE_WRITE/ATTRIB/MOVED_TO/MOVED_FROM/DELETE và các sự kiện self. Gom theo đường dẫn 250ms; file chưa ổn định thử lại tối đa 3 lần. Hàng đợi native dùng chung cho sự kiện, kiểm tra bù và lệnh đồng bộ. Theo dõi thay đổi volume khi foreground.
+- Android 11+: MediaStore checkpoint theo volume/version/generation; generation không đổi thì không truy vấn bản ghi. Khi thay đổi, truy vấn delta và inventory ID riêng để xác nhận xóa. Android 10 trở xuống truy vấn collection khi kiểm tra bù, không duyệt lại toàn bộ hệ thống file. Nguồn không truy cập được không được tiến checkpoint.
+- `documentsChanged` có `{ revision, upserted: DocumentRecord[], removedIds: string[] }`, phát sau commit. Room invalidation bao gồm cả tạo/import/sửa/xóa trong app; `documentsRemoved` vẫn giữ để tương thích. Pinia chỉ đăng ký kênh mới, loại sự kiện cũ/trùng, hợp nhất thay đổi trong lúc tải snapshot. Phản hồi thay đổi từng document có `revision` để sự kiện trễ không hoàn tác thao tác mới.
+- `LibrarySyncState`: `{ hasAccess, initialization, phase, processed, observers, directoriesRead, filesRead, syncTasks, lastSuccessAt, error }`. `initialization` = `not_started|running|complete|interrupted`; `phase` = `idle|permission_required|indexing|updating|error`. Tiến trình là số tài liệu đã xử lý; không ước lượng phần trăm khi chưa biết tổng số.
+- URI nhập/lưu từ provider cục bộ được gắn `local_path` khi chứng minh được đường dẫn; observer không tạo thêm bản ghi của cùng file. Đổi tên/di chuyển giữ ID khi MediaStore chứng minh identity bằng volume/version/ID/generation-added. File tạm mất được ẩn bằng tombstone để giữ metadata trong khi chờ thông báo di chuyển. Không suy đoán identity theo tên/kích thước. File không có identity ổn định được xử lý xóa/thêm.
+- Mất quyền, volume tháo rời hoặc provider tạm lỗi giữ metadata. Snapshot luôn chỉ đọc DB. Trình duyệt dev dùng IndexedDB và không xin quyền bộ nhớ.
+
+**Giới hạn kiểm tra bù:** mtime thư mục phát hiện thêm/xóa/đổi tên, kể cả bản sao giữ ngày sửa cũ. Thay đổi nội dung tại chỗ khi app tắt chỉ tự bắt kịp nếu provider/MediaStore có thông báo hoặc generation phù hợp; file ngoài MediaStore có thể cần “Quét lại toàn bộ”. Không coi mtime thư mục là nhật ký tuyệt đối nếu công cụ bên ngoài tự khôi phục cả thời gian thư mục. Bao phủ observer, giới hạn tài nguyên, Android 10 và thẻ nhớ cần đo theo thiết bị; xem kết quả tại [`file-library-sync.md`](file-library-sync.md).
 
 Viết bằng TypeScript để làm chuẩn. Phía Kotlin cài đặt đúng từng lệnh này. Tên trường dùng camelCase; cột SQLite vẫn là snake_case trong [`schema.md`](schema.md).
 
@@ -147,7 +155,7 @@ Ghi chú:
 
 | Lệnh của plugin | Tham số | Trả về | Ứng với `NativeApi` |
 |-----------------|---------|--------|---------------------|
-| `listDocuments` | — | `{ documents }` | `listDocuments` |
+| `listDocuments` | — | `{ documents, revision }` | `getLibrarySnapshot` / `listDocuments` |
 | `updateDocument` | `{ id, patch }` | `{ document }` | `updateDocument` |
 | `removeDocuments` | `{ ids }` | — | `removeDocuments` |
 | `importFromDevice` | `{ accept, multiple, mode }` | `{ added, skipped }` | `importFromDevice` |

@@ -7,7 +7,7 @@ const schema = version => JSON.parse(readFileSync(new URL(`../android/app/schema
 function create(db, version) {
   for (const entity of schema(version).entities) {
     db.exec(entity.createSql.replaceAll('${TABLE_NAME}', entity.tableName))
-    for (const index of entity.indices) db.exec(index.createSql.replaceAll('${TABLE_NAME}', entity.tableName))
+    for (const index of entity.indices ?? []) db.exec(index.createSql.replaceAll('${TABLE_NAME}', entity.tableName))
   }
 }
 
@@ -44,4 +44,47 @@ test('database orders by original file time, with unknown dates after known date
     const query = dao.match(/@Query\("([^"]+)"\)\s+suspend fun getAll/)[1]
     assert.deepEqual(db.prepare(query).all().map(row => row.id), ['new', 'old', 'unknown'])
   } finally { db.close() }
+})
+
+test('Room v2 to v3 preserves metadata, creates checkpoints and advances revision only on committed document writes', () => {
+  const upgraded = new DatabaseSync(':memory:')
+  const fresh = new DatabaseSync(':memory:')
+  try {
+    create(upgraded, 2)
+    upgraded.exec(`INSERT INTO document (id, storage, location, display_name, mime_type, is_favorite, last_page, last_opened_at, added_at, modified_at)
+      VALUES ('kept', 'external', 'content://device/old.txt', 'old.txt', 'text/plain', 1, 7, 123, 100, 90)`)
+    const source = readFileSync(new URL('../android/app/src/main/kotlin/vn/alf/pdftoolbox/library/db/AppDatabase.kt', import.meta.url), 'utf8')
+    const migration = source.match(/MIGRATION_2_3[\s\S]*?override fun migrate[\s\S]*?\n            }/)[0]
+    for (const [, sql] of migration.matchAll(/db\.execSQL\("([^"]+)"\)/g)) upgraded.exec(sql)
+    const installer = source.match(/fun installRevision[\s\S]*?\n        }/)[0]
+    for (const [, sql] of installer.matchAll(/db\.execSQL\("([^"]+)"\)/g)) {
+      if (sql.includes('$action')) for (const action of ['INSERT', 'UPDATE', 'DELETE']) upgraded.exec(sql.replaceAll('$action', action))
+      else upgraded.exec(sql)
+    }
+    create(fresh, 3)
+    for (const table of ['document', 'library_state', 'library_directory', 'library_source']) {
+      assert.deepEqual(upgraded.prepare(`PRAGMA table_info(${table})`).all(), fresh.prepare(`PRAGMA table_info(${table})`).all())
+      const indexes = db => db.prepare(`PRAGMA index_list(${table})`).all().map(row => row.name).sort()
+      assert.deepEqual(indexes(upgraded), indexes(fresh))
+    }
+    const kept = upgraded.prepare('SELECT * FROM document').get()
+    assert.equal(kept.is_favorite, 1)
+    assert.equal(kept.last_page, 7)
+    assert.equal(kept.last_opened_at, 123)
+    assert.equal(kept.modified_at, 90)
+    assert.equal(kept.is_missing, 0)
+    const revision = () => upgraded.prepare('SELECT revision FROM library_state').get().revision
+    assert.equal(revision(), 0)
+    upgraded.exec("UPDATE document SET size_bytes = 99 WHERE id = 'kept'")
+    assert.equal(revision(), 1)
+    upgraded.exec("BEGIN; UPDATE document SET size_bytes = 100 WHERE id = 'kept'; ROLLBACK")
+    assert.equal(revision(), 1)
+    upgraded.exec("UPDATE document SET is_missing = 1 WHERE id = 'kept'")
+    assert.equal(upgraded.prepare('SELECT COUNT(*) AS count FROM document WHERE is_missing = 0').get().count, 0)
+    assert.equal(upgraded.prepare('SELECT last_page FROM document').get().last_page, 7)
+    upgraded.exec("UPDATE document SET is_missing = 0, location = 'content://device/moved.txt' WHERE id = 'kept'")
+    assert.equal(upgraded.prepare('SELECT last_page FROM document WHERE is_missing = 0').get().last_page, 7)
+    assert.equal(revision(), 3)
+    assert.equal(upgraded.prepare('SELECT status FROM library_state').get().status, 'not_started')
+  } finally { upgraded.close(); fresh.close() }
 })
