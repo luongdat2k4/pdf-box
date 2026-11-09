@@ -1,4 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
+// import { isOnboardingComplete } from '@/features/onboarding'
 
 // Clean URLs (no /#/). Capacitor's local server and the Vite dev server fall back to index.html for unknown paths;
 // a static web host needs the same fallback (rewrite every path to /index.html).
@@ -6,6 +7,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 export const router = createRouter({
   history: createWebHistory(),
   routes: [
+    // { path: '/onboarding', name: 'onboarding', component: () => import('@/pages/onboarding').then((m) => m.OnboardingPage) },
     // Home tabs are routes of the same page (/, /history, /favorites); the type chip is the `?type=` query.
     { path: '/', alias: '/home', name: 'home', component: () => import('@/pages/home').then((m) => m.HomePage) },
     { path: '/history', name: 'history', component: () => import('@/pages/home').then((m) => m.HomePage) },
@@ -25,3 +27,9 @@ export const router = createRouter({
     { path: '/:pathMatch(.*)*', redirect: '/' },
   ],
 })
+
+// router.beforeEach((to) => {
+//   if (!isOnboardingComplete() && to.name !== 'onboarding') {
+//     return { name: 'onboarding', query: { next: to.fullPath }, replace: true }
+//   }
+// })
