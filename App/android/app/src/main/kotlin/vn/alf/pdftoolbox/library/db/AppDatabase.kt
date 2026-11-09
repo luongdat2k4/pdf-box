@@ -16,7 +16,7 @@ import vn.alf.pdftoolbox.library.model.LibrarySource
  * The app's SQLite database. Schema changes must bump [version] and ship a Migration; never use
  * fallbackToDestructiveMigration, it would wipe the user's library.
  */
-@Database(entities = [DocumentEntity::class, LibraryState::class, LibraryDirectory::class, LibrarySource::class], version = 4, exportSchema = true)
+@Database(entities = [DocumentEntity::class, LibraryState::class, LibraryDirectory::class, LibrarySource::class], version = 5, exportSchema = true)
 @TypeConverters(Converters::class)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun documentDao(): DocumentDao
@@ -52,6 +52,12 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        val MIGRATION_4_5 = object : Migration(4, 5) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE document ADD COLUMN thumbnail_path TEXT")
+            }
+        }
+
         internal fun installRevision(db: SupportSQLiteDatabase) {
             db.execSQL("INSERT OR IGNORE INTO library_state (id, revision, status, indexVersion) VALUES (1, 0, 'not_started', 1)")
             for (action in listOf("INSERT", "UPDATE", "DELETE")) {
@@ -66,7 +72,7 @@ abstract class AppDatabase : RoomDatabase() {
         fun get(context: Context): AppDatabase =
             instance ?: synchronized(this) {
                 instance ?: Room.databaseBuilder(context.applicationContext, AppDatabase::class.java, FILE_NAME)
-                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
                     .addCallback(object : Callback() {
                         override fun onCreate(db: SupportSQLiteDatabase) { installRevision(db) }
                     })

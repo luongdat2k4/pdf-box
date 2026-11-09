@@ -3,6 +3,10 @@ package vn.alf.pdftoolbox.library
 import android.content.ContentValues
 import android.content.Context
 import android.net.Uri
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.graphics.Matrix
+import android.media.ExifInterface
 import android.os.Build
 import android.provider.MediaStore
 import android.util.Log
@@ -183,7 +187,9 @@ class LibraryRepository(
                 displayName = if (moved || existing.displayName == existing.sourceName) info.name else existing.displayName,
                 sourceName = info.name,
                 sizeBytes = info.sizeBytes, mimeType = MimeTypes.resolve(info.mimeType, info.name),
-                modifiedAt = info.modifiedAt ?: existing.modifiedAt, sourceKey = sourceKey ?: existing.sourceKey)
+                modifiedAt = info.modifiedAt ?: existing.modifiedAt, sourceKey = sourceKey ?: existing.sourceKey,
+                thumbnailPath = if (info.sizeBytes != existing.sizeBytes ||
+                    (info.modifiedAt != null && info.modifiedAt != existing.modifiedAt)) null else existing.thumbnailPath)
             if (next != existing) dao.update(next)
         }
     }
@@ -496,7 +502,7 @@ class LibraryRepository(
             Storage.APP -> contentGate.withLock { app.moveIn(temp, doc.location) }
             Storage.EXTERNAL -> external.overwrite(Uri.parse(doc.location), temp)
         }
-        val next = doc.copy(sizeBytes = size, modifiedAt = fileTime(doc))
+        val next = doc.copy(sizeBytes = size, modifiedAt = fileTime(doc), thumbnailPath = null)
         dao.update(next)
         next
     }
@@ -535,6 +541,72 @@ class LibraryRepository(
             throw notFound("Content of ${doc.id}")
         }
         Storage.EXTERNAL -> external.openInput(Uri.parse(doc.location))
+    }
+
+    /** Decodes one image at bounded resolution. Generation happens outside the scan transaction. */
+    suspend fun ensureThumbnail(id: String) {
+        val doc = dao.get(id) ?: return
+        if (doc.trashedAt != null || doc.isMissing || !GalleryImages.isImage(doc.sourceName ?: doc.displayName)) return
+        val relative = "thumbnails/$id.webp"
+        val dir = File(context.filesDir, "thumbnails")
+        val target = File(dir, "$id.webp")
+        if (doc.thumbnailPath == relative && target.isFile) return
+        val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+        openContent(doc).use { BitmapFactory.decodeStream(it, null, bounds) }
+        if (bounds.outWidth <= 0 || bounds.outHeight <= 0) return
+        var sample = 1
+        while (maxOf(bounds.outWidth / sample, bounds.outHeight / sample) > 256) sample *= 2
+        val options = BitmapFactory.Options().apply { inSampleSize = sample }
+        val decoded = openContent(doc).use { BitmapFactory.decodeStream(it, null, options) } ?: return
+        val scale = minOf(1f, 128f / maxOf(decoded.width, decoded.height))
+        val scaled = if (scale < 1f) Bitmap.createScaledBitmap(decoded,
+            maxOf(1, (decoded.width * scale).toInt()), maxOf(1, (decoded.height * scale).toInt()), true) else decoded
+        if (scaled !== decoded) decoded.recycle()
+        val orientation = try {
+            openContent(doc).use { input ->
+                ExifInterface(input).getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL)
+            }
+        } catch (_: Exception) { ExifInterface.ORIENTATION_NORMAL }
+        val matrix = Matrix().apply {
+            when (orientation) {
+                ExifInterface.ORIENTATION_ROTATE_90 -> postRotate(90f)
+                ExifInterface.ORIENTATION_ROTATE_180 -> postRotate(180f)
+                ExifInterface.ORIENTATION_ROTATE_270 -> postRotate(270f)
+                ExifInterface.ORIENTATION_FLIP_HORIZONTAL -> postScale(-1f, 1f)
+                ExifInterface.ORIENTATION_FLIP_VERTICAL -> postScale(1f, -1f)
+                ExifInterface.ORIENTATION_TRANSPOSE -> { postRotate(90f); postScale(-1f, 1f) }
+                ExifInterface.ORIENTATION_TRANSVERSE -> { postRotate(270f); postScale(-1f, 1f) }
+            }
+        }
+        val bitmap = if (matrix.isIdentity) scaled else Bitmap.createBitmap(scaled, 0, 0, scaled.width, scaled.height, matrix, true)
+        if (bitmap !== scaled) scaled.recycle()
+        dir.mkdirs()
+        val temp = File.createTempFile("thumb-", ".part", dir)
+        try {
+            temp.outputStream().use { output ->
+                if (!bitmap.compress(Bitmap.CompressFormat.WEBP, 72, output)) return
+            }
+            scanGate.withLock {
+                val current = dao.get(id)
+                if (current != null && current.location == doc.location && current.sizeBytes == doc.sizeBytes &&
+                    current.modifiedAt == doc.modifiedAt && !current.isMissing) {
+                    if (!temp.renameTo(target)) temp.copyTo(target, overwrite = true)
+                    dao.update(current.copy(thumbnailPath = relative))
+                }
+            }
+        } finally {
+            bitmap.recycle()
+            temp.delete()
+        }
+    }
+
+    /** Only serves a path belonging to this document, never a caller-supplied filesystem path. */
+    suspend fun readThumbnail(id: String): ByteArray? {
+        val doc = dao.get(id) ?: return null
+        val relative = doc.thumbnailPath ?: return null
+        if (doc.trashedAt != null || relative != "thumbnails/$id.webp") return null
+        val file = File(context.filesDir, relative)
+        return if (file.isFile && file.length() <= 128 * 1024) file.readBytes() else null
     }
 
     // ---- export and share ------------------------------------------------------------------------------------
@@ -633,6 +705,13 @@ class LibraryRepository(
     suspend fun cleanup(): Int {
         val orphans = contentGate.withLock { app.cleanOrphans(dao.appLocations().toSet()) }
         app.cleanStaleTemps(STALE_TEMP_MS)
+        scanGate.withLock {
+            val known = dao.getAll().mapNotNull { it.thumbnailPath }.toSet()
+            File(context.filesDir, "thumbnails").listFiles()?.forEach { file ->
+                if (file.isFile && "thumbnails/${file.name}" !in known &&
+                    (file.extension == "webp" || clock() - file.lastModified() > STALE_TEMP_MS)) file.delete()
+            }
+        }
         return orphans
     }
 

@@ -16,6 +16,7 @@ function toMeta(r: DocumentRecord): FileMeta | null {
     id: r.id, name: r.displayName, kind, size: r.sizeBytes ?? 0, mime: r.mimeType,
     addedAt: r.addedAt, modifiedAt: r.modifiedAt ?? null, openedAt: r.lastOpenedAt, favorite: r.isFavorite,
     lastPage: r.lastPage, lastZoom: r.lastZoom, pageCount: r.pageCount, isEncrypted: r.isEncrypted,
+    thumbnailPath: r.thumbnailPath ?? null,
   }
 }
 

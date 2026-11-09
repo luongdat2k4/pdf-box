@@ -19,6 +19,7 @@ interface LibraryPlugin {
     skipped: string[]
   }>
   readChunk(o: { id: string; offset: number; length: number }): Promise<{ data: string; eof: boolean; size: number | null }>
+  readThumbnail(o: { id: string }): Promise<{ data: string | null }>
   writeBegin(): Promise<{ token: string }>
   writeChunk(o: { token: string; data: string }): Promise<void>
   writeAbort(o: { token: string }): Promise<void>
@@ -155,6 +156,10 @@ export const nativeApi: NativeApi = {
       if (r.eof) break
     }
     return new Blob(parts)
+  },
+  async readThumbnail(id) {
+    const { data } = await call(Library.readThumbnail({ id }))
+    return data ? new Blob([base64ToBytes(data) as Uint8Array<ArrayBuffer>], { type: 'image/webp' }) : null
   },
   replaceContent: (id, data) => writeBlob(data, { id }),
 

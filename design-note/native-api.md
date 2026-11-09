@@ -103,6 +103,7 @@ interface DocumentRecord {
   lastOpenedAt: number | null
   addedAt: number
   modifiedAt: number | null // thời gian sửa đổi gốc của file, epoch milliseconds
+  thumbnailPath: string | null // cache ảnh nhỏ trong filesDir/thumbnails; null khi chưa tạo
 }
 
 type DocumentPatch = Partial<Pick<DocumentRecord,
@@ -121,6 +122,7 @@ interface NativeApi {
 
   // ---- nội dung ----
   readContent(id: string): Promise<Blob>
+  readThumbnail(id: string): Promise<Blob | null>
   replaceContent(id: string, data: Blob): Promise<DocumentRecord>
 
   // ---- ra ngoài ----

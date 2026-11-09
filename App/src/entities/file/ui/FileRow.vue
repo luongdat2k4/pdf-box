@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import { t } from '@/shared/i18n'
-import { computed } from 'vue'
+import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { Ic } from '@/shared/ui'
 import type { IconName } from '@/shared/config/icons'
 import type { FileMeta } from '../model/types'
 import { formatDate, formatSize } from '@/shared/lib/format'
+import { api } from '../api/native-api'
 
 const props = defineProps<{
   file: FileMeta
@@ -15,6 +16,25 @@ const props = defineProps<{
   order?: number
 }>()
 const emit = defineEmits<{ click: []; menu: []; star: [] }>()
+const thumbnailUrl = ref<string | null>(null)
+let request = 0
+watch(() => [props.file.id, props.file.thumbnailPath], async () => {
+  const current = ++request
+  if (thumbnailUrl.value) URL.revokeObjectURL(thumbnailUrl.value)
+  thumbnailUrl.value = null
+  if (props.file.kind !== 'image' || !props.file.thumbnailPath) return
+  try {
+    const blob = await api.readThumbnail(props.file.id)
+    if (!blob) return
+    const url = URL.createObjectURL(blob)
+    if (current === request) thumbnailUrl.value = url
+    else URL.revokeObjectURL(url)
+  } catch { /* A missing or unreadable cache keeps the icon visible. */ }
+}, { immediate: true })
+onBeforeUnmount(() => {
+  request++
+  if (thumbnailUrl.value) URL.revokeObjectURL(thumbnailUrl.value)
+})
 
 const icon = computed<{ name: IconName; cls: string }>(() => {
   switch (props.file.kind) {
@@ -43,7 +63,8 @@ const icon = computed<{ name: IconName; cls: string }>(() => {
       <Ic v-if="selected" name="check" :size="14" />
     </div>
     <div class="grid size-11 flex-none place-items-center rounded-xl" :class="icon.cls">
-      <Ic :name="icon.name" />
+      <img v-if="thumbnailUrl" :src="thumbnailUrl" alt="" class="size-11 rounded-xl object-cover" />
+      <Ic v-else :name="icon.name" />
     </div>
     <div class="min-w-0 flex-1">
       <p class="truncate text-[15px] font-medium text-ink-strong">{{ file.name }}</p>

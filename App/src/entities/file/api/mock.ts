@@ -14,6 +14,7 @@ function toRecord(m: FileMeta): DocumentRecord {
     sizeBytes: m.size, pageCount: m.pageCount ?? null, isEncrypted: m.isEncrypted ?? false, isFavorite: m.favorite,
     lastPage: m.lastPage ?? 0, lastZoom: m.lastZoom ?? null, lastOpenedAt: m.openedAt, addedAt: m.addedAt, modifiedAt: m.modifiedAt ?? null,
     trashedAt: m.trashedAt ?? null,
+    thumbnailPath: m.thumbnailPath ?? null,
   }
 }
 
@@ -56,6 +57,22 @@ async function blobOf(id: string, maxBytes?: number): Promise<Blob> {
   return b
 }
 
+async function makeThumbnail(id: string, data: Blob): Promise<string | null> {
+  try {
+    const image = await createImageBitmap(data)
+    const scale = Math.min(1, 128 / Math.max(image.width, image.height))
+    const canvas = document.createElement('canvas')
+    canvas.width = Math.max(1, Math.round(image.width * scale))
+    canvas.height = Math.max(1, Math.round(image.height * scale))
+    canvas.getContext('2d')?.drawImage(image, 0, 0, canvas.width, canvas.height)
+    image.close()
+    const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/webp', 0.72))
+    if (!blob) return null
+    await db.putThumbnail(id, blob)
+    return `idb-thumb:${id}`
+  } catch { return null }
+}
+
 async function store(name: string, mimeType: string, data: Blob): Promise<DocumentRecord> {
   const kind = kindOf(name)
   if (!kind) throw Object.assign(new Error(`Unsupported file type: ${name}`), { code: 'UNSUPPORTED_TYPE' })
@@ -65,6 +82,10 @@ async function store(name: string, mimeType: string, data: Blob): Promise<Docume
     lastPage: 0, lastZoom: null, pageCount: null, isEncrypted: false,
   }
   await db.putFile(meta, data)
+  if (kind === 'image') {
+    meta.thumbnailPath = await makeThumbnail(meta.id, data)
+    await db.putMeta(meta)
+  }
   return { ...toRecord(meta), revision: ++revision }
 }
 
@@ -132,11 +153,13 @@ export const mockApi: NativeApi = {
   saveOutput: ({ name, mimeType, data }) => store(name, mimeType, data),
 
   readContent: blobOf,
+  readThumbnail: async id => (await db.getThumbnail(id)) ?? null,
 
   async replaceContent(id, data) {
     const m = await metaOf(id)
     m.size = data.size
     m.modifiedAt = Date.now()
+    if (m.kind === 'image') m.thumbnailPath = await makeThumbnail(id, data)
     await db.putFile(m, data)
     return { ...toRecord(m), revision: ++revision }
   },

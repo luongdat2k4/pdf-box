@@ -53,4 +53,6 @@ data class DocumentEntity(
     @ColumnInfo(name = "source_name") val sourceName: String? = null,
     /** Non-null while the document is in the app's recoverable Trash. */
     @ColumnInfo(name = "trashed_at") val trashedAt: Long? = null,
+    /** Relative path under filesDir; a disposable preview of an image document. */
+    @ColumnInfo(name = "thumbnail_path") val thumbnailPath: String? = null,
 )

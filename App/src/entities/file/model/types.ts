@@ -16,6 +16,7 @@ export interface FileMeta {
   pageCount: number | null
   isEncrypted: boolean
   trashedAt?: number | null
+  thumbnailPath?: string | null
 }
 
 export const EXT_KIND: Record<string, FileKind> = {

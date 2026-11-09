@@ -4,6 +4,7 @@ import type { FileMeta } from '../model/types'
 // Metadata and blobs live in separate stores so listing never loads file bodies.
 const metaStore = createStore('pdftoolbox-meta', 'files')
 const blobStore = createStore('pdftoolbox-blob', 'files')
+const thumbnailStore = createStore('pdftoolbox-thumbnail', 'files')
 
 export async function listMeta(): Promise<FileMeta[]> {
   return (await values(metaStore)) as FileMeta[]
@@ -22,11 +23,20 @@ export async function getBlob(id: string): Promise<Blob | undefined> {
   return get<Blob>(id, blobStore)
 }
 
+export async function putThumbnail(id: string, blob: Blob): Promise<void> {
+  await set(id, blob, thumbnailStore)
+}
+
+export async function getThumbnail(id: string): Promise<Blob | undefined> {
+  return get<Blob>(id, thumbnailStore)
+}
+
 export async function getBlobs(ids: string[]): Promise<(Blob | undefined)[]> {
   return getMany<Blob>(ids, blobStore)
 }
 
 export async function removeFile(id: string): Promise<void> {
+  await del(id, thumbnailStore)
   await del(id, blobStore)
   await del(id, metaStore)
 }

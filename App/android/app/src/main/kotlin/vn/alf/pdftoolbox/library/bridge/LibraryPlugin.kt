@@ -26,6 +26,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.flow.collect
 import org.json.JSONException
@@ -38,6 +39,8 @@ import vn.alf.pdftoolbox.library.files.FileNames
 import vn.alf.pdftoolbox.library.files.MimeTypes
 import vn.alf.pdftoolbox.library.files.WriteSessions
 import vn.alf.pdftoolbox.library.files.LibraryWatcher
+import vn.alf.pdftoolbox.library.files.GalleryImages
+import java.util.concurrent.ConcurrentHashMap
 import vn.alf.pdftoolbox.library.model.DocumentEntity
 import vn.alf.pdftoolbox.library.model.ErrorCode
 import vn.alf.pdftoolbox.library.model.ImportMode
@@ -60,6 +63,16 @@ class LibraryPlugin : Plugin() {
     private lateinit var repo: LibraryRepository
     private lateinit var sessions: WriteSessions
     private lateinit var watcher: LibraryWatcher
+    private val thumbnailQueue = Channel<String>(Channel.UNLIMITED)
+    private val thumbnailsPending = ConcurrentHashMap.newKeySet<String>()
+    private val thumbnailsDirty = ConcurrentHashMap.newKeySet<String>()
+
+    private fun queueThumbnail(doc: DocumentEntity) {
+        if (doc.trashedAt == null && GalleryImages.isImage(doc.sourceName ?: doc.displayName)) {
+            if (thumbnailsPending.add(doc.id)) thumbnailQueue.trySend(doc.id)
+            else thumbnailsDirty.add(doc.id)
+        }
+    }
 
     override fun load() {
         val services = LibraryServices.get(context)
@@ -69,12 +82,24 @@ class LibraryPlugin : Plugin() {
             notifyListeners("librarySyncState", status.toJson())
         }
         scope.launch {
+            for (id in thumbnailQueue) {
+                try { repo.ensureThumbnail(id) }
+                catch (e: CancellationException) { throw e }
+                catch (e: Exception) { Log.w(TAG, "Could not create thumbnail for $id", e) }
+                finally {
+                    thumbnailsPending.remove(id)
+                    if (thumbnailsDirty.remove(id) && thumbnailsPending.add(id)) thumbnailQueue.trySend(id)
+                }
+            }
+        }
+        scope.launch {
             var previous = emptyMap<String, DocumentEntity>()
             repo.observeDocuments().collect {
                 // The rows and revision share one Room transaction, including all app-originated writes.
                 val snapshot = repo.snapshot()
                 val current = snapshot.documents.associateBy { it.id }
                 val changed = current.values.filter { previous[it.id] != it }
+                changed.forEach(::queueThumbnail)
                 val removed = previous.keys - current.keys
                 if (changed.isNotEmpty() || removed.isNotEmpty()) {
                     notifyListeners("documentsChanged", JSObject().put("revision", snapshot.revision)
@@ -306,6 +331,12 @@ class LibraryPlugin : Plugin() {
             .put("data", Base64.encodeToString(chunk.bytes, Base64.NO_WRAP))
             .put("eof", chunk.eof)
             .put("size", chunk.size ?: JSONObject.NULL)
+    }
+
+    @PluginMethod
+    fun readThumbnail(call: PluginCall) = launchCall(call) {
+        val bytes = repo.readThumbnail(call.data.requireString("id"))
+        JSObject().put("data", bytes?.let { Base64.encodeToString(it, Base64.NO_WRAP) } ?: JSONObject.NULL)
     }
 
     // ---- writing content (chunked) -------------------------------------------------------------------------------

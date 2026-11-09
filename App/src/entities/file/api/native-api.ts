@@ -22,6 +22,7 @@ export interface DocumentRecord {
   /** Original file modification time in milliseconds; unknown when the provider omits it. */
   modifiedAt: number | null
   trashedAt?: number | null
+  thumbnailPath?: string | null
 }
 
 export type DocumentPatch = Partial<
@@ -64,6 +65,7 @@ export interface NativeApi {
 
   /** Stop reading when the content exceeds the caller's byte budget, including unknown-size streams. */
   readContent(id: string, maxBytes?: number): Promise<Blob>
+  readThumbnail(id: string): Promise<Blob | null>
   replaceContent(id: string, data: Blob): Promise<DocumentRecord>
 
   /** Returns where the copy ended up (a path, URI or file name). */

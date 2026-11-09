@@ -173,6 +173,7 @@ CREATE TABLE document (
   last_opened_at  INTEGER,                    -- epoch mili giây
   added_at        INTEGER NOT NULL,
   modified_at     INTEGER, -- thời gian sửa đổi thực tế của file; NULL nếu nguồn không cung cấp
+  thumbnail_path  TEXT,    -- đường dẫn tương đối của cache ảnh nhỏ; NULL cho file khác hoặc khi chưa tạo
   UNIQUE (storage, location)
 );
 CREATE INDEX idx_doc_recent ON document(last_opened_at DESC);
