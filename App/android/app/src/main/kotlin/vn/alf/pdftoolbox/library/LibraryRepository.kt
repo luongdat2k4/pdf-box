@@ -28,6 +28,7 @@ import vn.alf.pdftoolbox.library.files.DeviceStorage
 import vn.alf.pdftoolbox.library.files.ExtensionFilter
 import vn.alf.pdftoolbox.library.files.ExternalContentStore
 import vn.alf.pdftoolbox.library.files.FileNames
+import vn.alf.pdftoolbox.library.files.GalleryImages
 import vn.alf.pdftoolbox.library.files.MimeTypes
 import vn.alf.pdftoolbox.library.model.DocumentEntity
 import vn.alf.pdftoolbox.library.model.DocumentPatch
@@ -92,6 +93,24 @@ class LibraryRepository(
     /** Held while an app file and its row are being created, and while orphans are collected. */
     private val contentGate = Mutex()
     private val scanGate = Mutex()
+    private var galleryPaths: Set<String>? = null
+
+    /** Refresh once per sync, before filesystem and MediaStore events can add image rows. */
+    suspend fun refreshGallery(filter: ExtensionFilter) {
+        if (GalleryImages.extensions.none { filter.allows("image.$it") }) return
+        val paths = GalleryImages(context).paths()
+        scanGate.withLock {
+            galleryPaths = paths
+            for (doc in dao.getAll()) {
+                if (doc.storage != Storage.EXTERNAL || !GalleryImages.isImage(doc.sourceName ?: doc.displayName)) continue
+                val path = doc.localPath ?: localFile(doc)?.canonicalPath ?: continue
+                if (path !in paths) dao.deleteByIds(listOf(doc.id))
+            }
+        }
+    }
+
+    private fun includeObserved(file: File): Boolean =
+        !GalleryImages.isImage(file.name) || galleryPaths?.contains(file.canonicalPath) != false
 
     suspend fun libraryAccess(): Pair<Boolean, Boolean> =
         deviceStorage.hasAccess() to settingsStore.libraryPrompted()
@@ -123,7 +142,7 @@ class LibraryRepository(
             val count = deviceStorage.scan(filter, onDirectory = onDirectory, onListed = { dir, time ->
                 flush()
                 index.putDirectory(LibraryDirectory(dir.canonicalPath, time))
-            }) { uri, info ->
+            }, include = ::includeObserved) { uri, info ->
                 batch += uri to info
                 if (batch.size >= 64) flush()
             }
@@ -169,7 +188,7 @@ class LibraryRepository(
     }
 
     suspend fun observeFile(file: File, filter: ExtensionFilter, sourceKey: String? = null) = scanGate.withLock {
-        if (filter.allows(file.name)) deviceStorage.describe(file)?.let { info ->
+        if (filter.allows(file.name) && includeObserved(file)) deviceStorage.describe(file)?.let { info ->
             database.withTransaction { upsertObserved(deviceStorage.uri(file), info, sourceKey) }
         }
     }
@@ -185,7 +204,7 @@ class LibraryRepository(
         deviceStorage.scan(filter, start = listOf(directory), onDirectory = watch, onListed = { dir, time ->
             flush()
             index.putDirectory(LibraryDirectory(dir.canonicalPath, time))
-        }, descend = { it.canonicalPath !in known }) { uri, info ->
+        }, descend = { it.canonicalPath !in known }, include = ::includeObserved) { uri, info ->
             batch += uri to info
             if (batch.size >= 64) flush()
         }
@@ -606,7 +625,7 @@ class LibraryRepository(
     }
 
     companion object {
-        const val INDEX_VERSION = 1
+        const val INDEX_VERSION = 2
         private const val TAG = "LibraryRepository"
         const val MAX_CHUNK = 4 * 1024 * 1024
         private const val STALE_TEMP_MS = 24L * 60 * 60 * 1000

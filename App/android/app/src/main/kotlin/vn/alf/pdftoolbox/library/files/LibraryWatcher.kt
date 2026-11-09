@@ -97,6 +97,7 @@ class LibraryWatcher(
                             val initial = full || state.status != "complete" || state.indexVersion != LibraryRepository.INDEX_VERSION
                             syncTasks++; processed = 0
                             emit(if (initial) "indexing" else "updating")
+                            repo.refreshGallery(filter)
                             registerProviders()
                             if (initial) repo.scanLibrary(filter, ::watch) { count -> processed = count; emitProgress() }
                             // Apply stable provider identities before pruning old pathnames.

@@ -92,6 +92,7 @@ class DeviceStorage(private val context: Context, private val rootOverride: (() 
         onDirectory: (File) -> Unit = {},
         onListed: suspend (File, Long) -> Unit = { _, _ -> },
         descend: (File) -> Boolean = { true },
+        include: (File) -> Boolean = { true },
         visit: suspend (Uri, ExternalContentStore.Info) -> Unit,
     ): Int {
         requireAccess()
@@ -115,7 +116,7 @@ class DeviceStorage(private val context: Context, private val rootOverride: (() 
                     // Other apps' data/expansion files are outside the all-files permission.
                     if (!allowedDirectory(child)) continue
                     if (descend(child)) pending.add(child)
-                } else if (child.isFile && child.canRead() && filter.allows(child.name)) {
+                } else if (child.isFile && child.canRead() && filter.allows(child.name) && include(child)) {
                     val info = describe(child) ?: continue
                     visit(uri(child), info)
                     count++
