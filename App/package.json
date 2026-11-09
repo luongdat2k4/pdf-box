@@ -15,6 +15,7 @@
     "lint:fsd": "node scripts/check-fsd.mjs"
   },
   "dependencies": {
+    "@alf/app-sdk": "file:../alf-app-sdk-3.0.0.tgz",
     "@cantoo/pdf-lib": "^2.11.1",
     "@capacitor/app": "^8.1.2",
     "@capacitor/camera": "^8.2.6",

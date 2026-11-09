@@ -1,0 +1,7 @@
+export { adsConfig, initAdsSdk } from './config'
+export { default as BannerAd } from './component/BannerAd.vue'
+export { default as MrecAd } from './component/MrecAd.vue'
+export { default as NativeAd } from './component/NativeAd.vue'
+export { default as InterstitialAd } from './component/InterstitialAd.vue'
+export { default as RewardedAd } from './component/RewardedAd.vue'
+export { default as AppOpenAd } from './component/AppOpenAd.vue'
