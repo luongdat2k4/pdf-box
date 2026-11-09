@@ -21,6 +21,7 @@ export interface DocumentRecord {
   addedAt: number
   /** Original file modification time in milliseconds; unknown when the provider omits it. */
   modifiedAt: number | null
+  trashedAt?: number | null
 }
 
 export type DocumentPatch = Partial<
@@ -51,6 +52,8 @@ export interface NativeApi {
   listDocuments(): Promise<DocumentRecord[]>
   updateDocument(id: string, patch: DocumentPatch): Promise<DocumentRecord>
   removeDocuments(ids: string[]): Promise<{ revision: number }>
+  listTrash(): Promise<DocumentRecord[]>
+  restoreDocuments(ids: string[]): Promise<{ revision: number }>
 
   importFromDevice(opts: {
     accept: string[]

@@ -12,6 +12,8 @@ interface LibraryPlugin {
   listDocuments(): Promise<LibrarySnapshot>
   updateDocument(o: { id: string; patch: DocumentPatch }): Promise<{ document: DocumentRecord }>
   removeDocuments(o: { ids: string[] }): Promise<{ revision: number }>
+  listTrash(): Promise<{ documents: DocumentRecord[] }>
+  restoreDocuments(o: { ids: string[] }): Promise<{ revision: number }>
   importFromDevice(o: { accept: string[]; multiple: boolean; mode: 'copy' | 'link' }): Promise<{
     added: DocumentRecord[]
     skipped: string[]
@@ -123,6 +125,12 @@ export const nativeApi: NativeApi = {
   },
   async removeDocuments(ids) {
     return await call(Library.removeDocuments({ ids }))
+  },
+  async listTrash() {
+    return (await call(Library.listTrash())).documents
+  },
+  async restoreDocuments(ids) {
+    return await call(Library.restoreDocuments({ ids }))
   },
 
   importFromDevice: (opts) => call(Library.importFromDevice(opts)),

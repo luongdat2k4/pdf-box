@@ -15,6 +15,7 @@ export interface FileMeta {
   lastZoom: number | null
   pageCount: number | null
   isEncrypted: boolean
+  trashedAt?: number | null
 }
 
 export const EXT_KIND: Record<string, FileKind> = {

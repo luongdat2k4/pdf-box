@@ -37,6 +37,7 @@ fun DocumentEntity.toJson(): JSObject = JSObject().apply {
     putNullable("lastOpenedAt", lastOpenedAt)
     put("addedAt", addedAt)
     putNullable("modifiedAt", modifiedAt)
+    putNullable("trashedAt", trashedAt)
 }
 
 fun List<DocumentEntity>.toJsonArray(): JSArray = JSArray().also { array -> forEach { array.put(it.toJson()) } }

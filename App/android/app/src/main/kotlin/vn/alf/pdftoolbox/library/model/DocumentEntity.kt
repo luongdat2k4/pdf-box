@@ -51,4 +51,6 @@ data class DocumentEntity(
     /** Canonical path, when known. Prevents a SAF/MediaStore URI and FileObserver creating duplicate rows. */
     @ColumnInfo(name = "local_path") val localPath: String? = null,
     @ColumnInfo(name = "source_name") val sourceName: String? = null,
+    /** Non-null while the document is in the app's recoverable Trash. */
+    @ColumnInfo(name = "trashed_at") val trashedAt: Long? = null,
 )

@@ -13,6 +13,7 @@ function toRecord(m: FileMeta): DocumentRecord {
     id: m.id, storage: 'app', location: `idb:${m.id}`, displayName: m.name, mimeType: m.mime,
     sizeBytes: m.size, pageCount: m.pageCount ?? null, isEncrypted: m.isEncrypted ?? false, isFavorite: m.favorite,
     lastPage: m.lastPage ?? 0, lastZoom: m.lastZoom ?? null, lastOpenedAt: m.openedAt, addedAt: m.addedAt, modifiedAt: m.modifiedAt ?? null,
+    trashedAt: m.trashedAt ?? null,
   }
 }
 
@@ -76,10 +77,10 @@ export const mockApi: NativeApi = {
   async scanLibrary() { return { hasAccess: false, initialization: 'complete', phase: 'idle', processed: 0 } },
   async getLibrarySnapshot() {
     const before = revision
-    return { documents: (await db.listMeta()).map(toRecord), revision: before }
+    return { documents: (await db.listMeta()).filter(m => !m.trashedAt).map(toRecord), revision: before }
   },
   async listDocuments() {
-    return (await db.listMeta()).map(toRecord)
+    return (await db.listMeta()).filter(m => !m.trashedAt).map(toRecord)
   },
 
   async updateDocument(id, patch) {
@@ -97,7 +98,20 @@ export const mockApi: NativeApi = {
   },
 
   async removeDocuments(ids) {
-    for (const id of ids) { await db.removeFile(id); revision++ }
+    for (const id of ids) {
+      const m = await metaOf(id)
+      if (!m.trashedAt) { m.trashedAt = Date.now(); await db.putMeta(m); revision++ }
+    }
+    return { revision }
+  },
+  async listTrash() {
+    return (await db.listMeta()).filter(m => !!m.trashedAt).sort((a, b) => (b.trashedAt ?? 0) - (a.trashedAt ?? 0)).map(toRecord)
+  },
+  async restoreDocuments(ids) {
+    for (const id of ids) {
+      const m = await metaOf(id)
+      if (m.trashedAt) { m.trashedAt = null; await db.putMeta(m); revision++ }
+    }
     return { revision }
   },
 

@@ -98,6 +98,9 @@ async function pick() {
     <header class="safe-top flex-none bg-header text-white">
       <div class="flex h-14 items-center gap-2 px-4">
         <h1 class="flex-1 text-lg font-bold tracking-tight">PDF Toolbox</h1>
+        <button class="grid size-10 place-items-center rounded-full active:bg-white/15" :aria-label="t('home.trash')" @click="router.push('/trash')">
+          <Ic name="trash" />
+        </button>
         <button class="grid size-10 place-items-center rounded-full active:bg-white/15" :aria-label="t('home.settings')" @click="router.push('/settings')">
           <Ic name="settings" />
         </button>

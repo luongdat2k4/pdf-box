@@ -102,6 +102,7 @@ class LibraryRepository(
         scanGate.withLock {
             galleryPaths = paths
             for (doc in dao.getAll()) {
+                if (doc.trashedAt != null) continue
                 if (doc.storage != Storage.EXTERNAL || !GalleryImages.isImage(doc.sourceName ?: doc.displayName)) continue
                 val path = doc.localPath ?: localFile(doc)?.canonicalPath ?: continue
                 if (path !in paths) dao.deleteByIds(listOf(doc.id))
@@ -303,27 +304,32 @@ class LibraryRepository(
         next
     }
 
-    /**
-     * Removes documents. Missing ids are ignored, so calling this twice is harmless.
-     * Both app and external documents lose their actual file before the row is removed.
-     * Successful deletions are reported individually, including when a later file fails.
-     */
+    /** Moves documents out of the library into the recoverable app Trash. No file bytes are deleted. */
     suspend fun remove(ids: List<String>, onRemoved: (String) -> Unit = {}) = scanGate.withLock {
         for (id in ids.distinct()) {
             locked(id) {
                 val doc = dao.get(id)
-                if (doc != null) {
-                    when (doc.storage) {
-                        Storage.APP -> {
-                            if (!app.delete(doc.location) && app.exists(doc.location))
-                                throw LibraryException(ErrorCode.IO_ERROR, "Could not delete ${doc.displayName}")
-                        }
-                        Storage.EXTERNAL -> external.delete(Uri.parse(doc.location))
-                    }
-                    dao.deleteByIds(listOf(id))
-                    if (doc.storage == Storage.EXTERNAL) external.release(Uri.parse(doc.location))
-                }
+                if (doc != null && doc.trashedAt == null) dao.update(doc.copy(trashedAt = System.currentTimeMillis()))
                 onRemoved(id)
+            }
+        }
+    }
+
+    suspend fun listTrash(): List<DocumentEntity> = dao.trashed()
+
+    suspend fun restore(ids: List<String>) = scanGate.withLock {
+        for (id in ids.distinct()) locked(id) {
+            val doc = dao.get(id) ?: return@locked
+            if (doc.trashedAt != null) {
+                val exists = when (doc.storage) {
+                    Storage.APP -> app.exists(doc.location)
+                    Storage.EXTERNAL -> {
+                        external.requireReadable(Uri.parse(doc.location))
+                        true
+                    }
+                }
+                if (!exists) throw LibraryException(ErrorCode.IO_ERROR, "Could not restore ${doc.displayName}: file is missing")
+                dao.update(doc.copy(trashedAt = null, isMissing = false))
             }
         }
     }
@@ -366,12 +372,18 @@ class LibraryRepository(
 
     private suspend fun importOne(p: PickedUri, info: ExternalContentStore.Info, mode: ImportMode): DocumentEntity {
         val localPath = if (mode == ImportMode.LINK) deviceStorage.importPath(p.uri) else null
-        localPath?.let { dao.findPath(it)?.let { existing -> return existing } }
+        localPath?.let { dao.findPath(it)?.let { existing ->
+            if (existing.trashedAt != null) dao.update(existing.copy(trashedAt = null))
+            return existing.copy(trashedAt = null)
+        } }
         // A provider may refuse persistent access; then a link would die on restart, so copy instead.
         if (mode == ImportMode.LINK && external.persist(p.uri, p.grantedFlags)) {
             val location = p.uri.toString()
             return locked("uri:$location") {
-                dao.find(Storage.EXTERNAL, location)?.let { return@locked it } // already linked
+                dao.find(Storage.EXTERNAL, location)?.let {
+                    if (it.trashedAt != null) dao.update(it.copy(trashedAt = null))
+                    return@locked it.copy(trashedAt = null)
+                } // already linked
                 val entity = newEntity(newId(), Storage.EXTERNAL, location, info.name, MimeTypes.resolve(info.mimeType, info.name), info.sizeBytes, info.modifiedAt).copy(localPath = localPath)
                 try {
                     dao.insert(entity)

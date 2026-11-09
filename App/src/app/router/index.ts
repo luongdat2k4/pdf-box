@@ -23,6 +23,7 @@ export const router = createRouter({
     { path: '/tool/doc2pdf', name: 'doc2pdf', component: () => import('@/pages/doc-to-pdf').then((m) => m.DocToPdfPage) },
     { path: '/tool/scan', name: 'scan', component: () => import('@/pages/scan-document').then((m) => m.ScanDocumentPage) },
     { path: '/tool/delete', name: 'delete', component: () => import('@/pages/delete-files').then((m) => m.DeleteFilesPage) },
+    { path: '/trash', name: 'trash', component: () => import('@/pages/trash').then((m) => m.TrashPage) },
     { path: '/settings', name: 'settings', component: () => import('@/pages/settings').then((m) => m.SettingsPage) },
     { path: '/:pathMatch(.*)*', redirect: '/' },
   ],

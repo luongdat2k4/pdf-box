@@ -181,6 +181,17 @@ class LibraryPlugin : Plugin() {
         JSObject().put("revision", repo.revision())
     }
 
+    @PluginMethod
+    fun listTrash(call: PluginCall) = launchCall(call) {
+        JSObject().put("documents", repo.listTrash().toJsonArray())
+    }
+
+    @PluginMethod
+    fun restoreDocuments(call: PluginCall) = launchCall(call) {
+        repo.restore(call.data.stringList("ids"))
+        JSObject().put("revision", repo.revision())
+    }
+
     // ---- import --------------------------------------------------------------------------------------------------
 
     private suspend fun libraryAccessJson(): JSObject {

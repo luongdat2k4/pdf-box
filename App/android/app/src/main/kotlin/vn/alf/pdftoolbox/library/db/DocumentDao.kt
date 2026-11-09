@@ -17,8 +17,11 @@ interface DocumentDao {
     @Query("SELECT COUNT(*) FROM document")
     fun observeChanges(): Flow<Int>
 
-    @Query("SELECT * FROM document WHERE is_missing = 0 ORDER BY modified_at DESC, id ASC")
+    @Query("SELECT * FROM document WHERE is_missing = 0 AND trashed_at IS NULL ORDER BY modified_at DESC, id ASC")
     suspend fun visible(): List<DocumentEntity>
+
+    @Query("SELECT * FROM document WHERE trashed_at IS NOT NULL ORDER BY trashed_at DESC, id ASC")
+    suspend fun trashed(): List<DocumentEntity>
 
     @Query("SELECT * FROM document WHERE source_key = :key")
     suspend fun findSource(key: String): DocumentEntity?

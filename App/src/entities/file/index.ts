@@ -1,5 +1,5 @@
 export { EXT_KIND, ACCEPT_ALL, ACCEPT_PDF, ACCEPT_IMAGE, kindOf, type FileKind, type FileMeta } from './model/types'
-export { api as libraryApi, type Settings as LibrarySettings } from './api/native-api'
+export { api as libraryApi, type Settings as LibrarySettings, type DocumentRecord } from './api/native-api'
 export { openedFiles } from './model/opened-files'
 export { useLibrary } from './model/store'
 export { useFileSearch } from './model/use-file-search'
