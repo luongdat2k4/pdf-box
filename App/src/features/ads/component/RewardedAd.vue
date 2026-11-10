@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { onMounted } from 'vue'
 import type { RewardResult } from '@alf/app-sdk'
-import { getAds } from '../config'
+import { getAds } from '@/shared/ads'
 
 const props = defineProps<{ placement?: string; preload?: boolean }>()
 const emit = defineEmits<{ closed: [result: RewardResult] }>()

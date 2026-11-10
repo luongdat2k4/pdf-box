@@ -1,13 +1,21 @@
 # Ads
 
-`config.ts` holds the ad configuration and initializes the ALF SDK before the app mounts
-(`initAdsSdk`, called from `app/main.ts`). Keys are written in the file itself, the same way as the
-Pulse app: Google's test AdMob app IDs by default, and empty AppLovin MAX keys to fill in once PDF
-Toolbox's own MAX ad units exist. Web builds, and native builds with no AdMob app ID and no MAX SDK key,
-skip ad initialization. `settings.testAds` makes the SDK serve Google's test ads.
+The placement plan is `design-note/ads-plan.md`.
+
+- `@/shared/ads` holds the configuration (`config.ts`, keys written in the file like the Pulse app) and the
+  scheduling every screen shares (`runtime.ts`, `placements.ts`): which formats can fill, the 60s gap between
+  full-screen ads, the per-session cap, the launch and resume app-open ads, the interstitials at a finished
+  tool (`useRunner`) and when opening a document from a list (`beforeOpenDocument`), and `expectExternal()`
+  for the system screens the app opens itself. It lives in `shared` so tool features and entities can use it.
+- The SDK starts in the background (`initAdsSdk` from `app/main.ts`); the app never waits for it.
+- Slots are reserved only when that format can fill (`bannerPossible`, `nativePossible`), so a build with
+  empty ad units shows no empty boxes.
+- One banner for the whole app, mounted by `app/App.vue` on routes with `meta.banner`; it hides while a sheet,
+  dialog, keyboard or full-screen ad is up (`holdAdsWhile`, `overlaysOpen`).
 
 Before shipping: replace the AdMob app IDs and ad units, fill in the MAX keys, and set `ADMOB_APP_ID` for
-the Android build (see `android/app/build.gradle`) to the same Android app ID.
+the Android build (see `android/app/build.gradle`) to the same Android app ID. `testAds` is on for now (Google's test ads in every
+format); set it, and `dev`, to false once real units are in.
 
 Import components from `@/features/ads`:
 
@@ -22,14 +30,13 @@ Example:
 ```vue
 <script setup lang="ts">
 import { ref } from 'vue'
-import { BannerAd, InterstitialAd } from '@/features/ads'
+import { InterstitialAd } from '@/features/ads'
 
 const interstitial = ref<InstanceType<typeof InterstitialAd> | null>(null)
 async function showAd() { await interstitial.value?.show() }
 </script>
 
 <template>
-  <BannerAd />
   <InterstitialAd ref="interstitial" preload placement="reader_open" />
   <button @click="showAd">Show ad</button>
 </template>

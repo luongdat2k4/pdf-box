@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted } from 'vue'
 import type { AdViewPosition } from '@alf/app-sdk'
-import { getAds } from '../config'
+import { getAds } from '@/shared/ads'
 
 const props = withDefaults(defineProps<{ position?: AdViewPosition }>(), {
   position: 'BOTTOM_CENTER',

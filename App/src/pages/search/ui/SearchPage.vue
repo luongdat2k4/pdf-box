@@ -3,6 +3,7 @@ import { t } from '@/shared/i18n'
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { Ic, VirtualList } from '@/shared/ui'
+import { beforeOpenDocument } from '@/shared/ads'
 import { FileRow, useLibrary, useFileSearch, openRoute, type FileMeta } from '@/entities/file'
 
 const router = useRouter()
@@ -14,6 +15,7 @@ const hasQuery = computed(() => !!q.value.trim())
 const { results, searching } = useFileSearch(() => lib.all, q, () => lib.searchRevision)
 
 async function open(f: FileMeta) {
+  await beforeOpenDocument() // may show an interstitial (design-note/ads-plan.md 4.3)
   await lib.touch(f.id)
   void router.push(f.kind === 'image' ? `/office/${f.id}` : openRoute(f))
 }

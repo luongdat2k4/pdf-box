@@ -1,8 +1,12 @@
 <script setup lang="ts">
+import { toRef } from 'vue'
+import { holdAdsWhile } from '../ads'
 import Ic from './Ic.vue'
 
 /** `soft` = tinted sheet with a close button instead of the grab handle and title. */
-defineProps<{ open: boolean; title?: string; soft?: boolean }>()
+const props = defineProps<{ open: boolean; title?: string; soft?: boolean }>()
+// Banner and native ads are drawn above the WebView; they step aside while the sheet is open.
+holdAdsWhile(toRef(props, 'open'))
 const emit = defineEmits<{ close: [] }>()
 </script>
 

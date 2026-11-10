@@ -1,5 +1,6 @@
 import { registerPlugin, type PluginListenerHandle } from '@capacitor/core'
 import { askConfirm } from '@/shared/ui'
+import { expectExternal } from '@/shared/ads'
 import { t, type MessageKey } from '@/shared/i18n'
 import type { DocumentPatch, DocumentRecord, LibraryAccess, LibraryChange, LibrarySnapshot, LibrarySyncState, NativeApi, OpenedEvent, Settings } from './native-api'
 
@@ -114,7 +115,7 @@ async function writeBlob(data: Blob, commit: { name?: string; mimeType?: string;
 
 export const nativeApi: NativeApi = {
   getLibraryAccess: () => call(Library.getLibraryAccess()),
-  requestLibraryAccess: () => call(Library.requestLibraryAccess()),
+  requestLibraryAccess: () => { expectExternal(); return call(Library.requestLibraryAccess()) },
   scanLibrary: (accept) => call(Library.scanLibrary({ accept })),
   syncLibrary: (accept) => call(Library.syncLibrary({ accept })),
   getLibrarySnapshot: () => call(Library.listDocuments()),
@@ -134,7 +135,7 @@ export const nativeApi: NativeApi = {
     return await call(Library.restoreDocuments({ ids }))
   },
 
-  importFromDevice: (opts) => call(Library.importFromDevice(opts)),
+  importFromDevice: (opts) => { expectExternal(); return call(Library.importFromDevice(opts)) },
   saveOutput: ({ name, mimeType, data }) => writeBlob(data, { name, mimeType }),
 
   async readContent(id, maxBytes) {
@@ -163,12 +164,12 @@ export const nativeApi: NativeApi = {
   },
   replaceContent: (id, data) => writeBlob(data, { id }),
 
-  exportDocument: (id) => call(Library.exportDocument({ id })),
-  shareDocument: (id) => call(Library.shareDocument({ id })),
+  exportDocument: (id) => { expectExternal(); return call(Library.exportDocument({ id })) },
+  shareDocument: (id) => { expectExternal(); return call(Library.shareDocument({ id })) },
 
   getSettings: () => call(Library.getSettings()),
   setSettings: (patch) => call(Library.setSettings(patch)),
-  pickSaveFolder: () => call(Library.pickSaveFolder()),
+  pickSaveFolder: () => { expectExternal(); return call(Library.pickSaveFolder()) },
 
   async onDocumentOpened(cb) {
     const handle = await Library.addListener('documentOpened', cb)

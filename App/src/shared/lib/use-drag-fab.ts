@@ -20,8 +20,10 @@ export function useDragFab(target: Ref<HTMLElement | null>, storageKey: string, 
     if (!el) return
     const rect = el.getBoundingClientRect()
     const home = rect.bottom + offset.value // un-offset bottom edge
-    // offset > 0 moves up; top edge must stay >= margin, bottom edge <= innerHeight - margin
-    range = { min: Math.min(0, home - (window.innerHeight - margin)), max: Math.max(0, home - rect.height - margin) }
+    // The app's banner strip (if any) is off limits too.
+    const floor = window.innerHeight - (document.querySelector('[data-ad-strip]')?.getBoundingClientRect().height ?? 0)
+    // offset > 0 moves up; top edge must stay >= margin, bottom edge <= floor - margin
+    range = { min: Math.min(0, home - (floor - margin)), max: Math.max(0, home - rect.height - margin) }
   }
 
   function apply() {

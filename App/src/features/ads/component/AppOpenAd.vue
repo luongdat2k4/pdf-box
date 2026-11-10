@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted } from 'vue'
-import { getAds } from '../config'
+import { getAds } from '@/shared/ads'
 
 const props = withDefaults(defineProps<{
   provider?: 'applovin' | 'admob'

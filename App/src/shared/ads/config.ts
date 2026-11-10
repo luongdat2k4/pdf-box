@@ -2,8 +2,9 @@ import { Capacitor } from '@capacitor/core'
 import { ALF, type Config } from '@alf/app-sdk'
 
 // Google's official test app IDs. With `settings.testAds` the SDK requests Google's test ad units for every
-// AdMob format, so ads fill without a real AdMob account. Before shipping: replace both app IDs and the ad
-// units below, and set `dev` to false (and `testAds` stays false).
+// format (banner, native, interstitial, app open), so ads fill without a real AdMob account. It is on while
+// PDF Toolbox has no ad units of its own. Before shipping: replace both app IDs, fill in the ad units below,
+// and set `dev` and `testAds` to false.
 // The Android app ID must also match `ADMOB_APP_ID` in android/app/build.gradle (the manifest placeholder).
 const TEST_APP_ID = {
   android: 'ca-app-pub-3940256099942544~3347511713',
@@ -13,7 +14,7 @@ const TEST_APP_ID = {
 export const adsConfig: Config = {
   settings: {
     dev: true,
-    testAds: false,
+    testAds: true,
     isGame: false,
     isApp: true,
     appName: 'PDF Toolbox',

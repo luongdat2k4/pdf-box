@@ -1,6 +1,7 @@
 import { Capacitor } from '@capacitor/core'
 import { Directory, Filesystem } from '@capacitor/filesystem'
 import { Share } from '@capacitor/share'
+import { expectExternal } from '../ads'
 
 export const isNative = () => Capacitor.isNativePlatform()
 
@@ -47,6 +48,7 @@ export async function shareFile(name: string, blob: Blob): Promise<void> {
       directory: Directory.Cache,
       recursive: true,
     })
+    expectExternal() // the share sheet leaves the app; coming back shows no app-open ad
     await Share.share({ title: name, url: res.uri })
     return
   }

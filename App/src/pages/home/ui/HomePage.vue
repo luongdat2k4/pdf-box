@@ -6,6 +6,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { Ic, toast, VirtualList } from '@/shared/ui'
 import { tp, type MessageKey } from '@/shared/i18n'
 import { errorMessage } from '@/shared/lib/error'
+import { beforeOpenDocument } from '@/shared/ads'
 import { useDragScroll } from '@/shared/lib/use-drag-scroll'
 import { useDragFab } from '@/shared/lib/use-drag-fab'
 import { FileRow, openRoute, useLibrary, type FileKind, type FileMeta } from '@/entities/file'
@@ -78,6 +79,7 @@ const emptyText = computed(() => {
 })
 
 async function open(f: FileMeta) {
+  await beforeOpenDocument() // may show an interstitial (design-note/ads-plan.md 4.3)
   if (f.kind === 'image') return void router.push(`/office/${f.id}`)
   await lib.touch(f.id)
   void router.push(openRoute(f))
@@ -174,7 +176,7 @@ async function pick() {
 
     <button
       ref="fabEl"
-      class="fixed right-5 bottom-[calc(1.25rem+env(safe-area-inset-bottom,0px))] grid size-14 touch-none place-items-center rounded-full bg-primary text-white shadow-lg shadow-primary/40 select-none active:bg-primary-dark"
+      class="fixed right-5 bottom-[calc(1.25rem+var(--ad-inset,env(safe-area-inset-bottom,0px)))] grid size-14 touch-none place-items-center rounded-full bg-primary text-white shadow-lg shadow-primary/40 select-none active:bg-primary-dark"
       :style="fab.style.value"
       :aria-label="t('home.openTools')"
       @click="toolsOpen = true"

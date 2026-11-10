@@ -2,9 +2,13 @@
 import { useRoute, useRouter } from 'vue-router'
 import { LANGUAGES, flagUrl, locale, setLocale, t } from '@/shared/i18n'
 import { Ic } from '@/shared/ui'
+import { NativeAd } from '@/features/ads'
+import { nativePossible } from '@/shared/ads'
 
 const route = useRoute()
 const router = useRouter()
+// Native ads must not sit in a scrolling area: the slot only exists where the screen fits it without scrolling.
+const nativeSlot = nativePossible && window.innerHeight >= 700
 
 // A language is preselected from the device setting; choosing is one tap and Continue.
 function next() {
@@ -47,6 +51,11 @@ function next() {
       </button>
     </div>
 
+    <!-- Small native ad, reserved from the first frame and kept 48px+ clear of Continue (design-note/ads-plan.md 4.6). -->
+    <div v-if="nativeSlot" class="native-slot">
+      <NativeAd slot="language" template="small" :height="96" />
+    </div>
+
     <button class="continue" @click="next">{{ t('onboarding.continue') }}</button>
   </main>
 </template>
@@ -70,8 +79,10 @@ h1 { margin: 0; font-size: 28px; line-height: 1.2; letter-spacing: -.6px; font-w
 .option.selected { border-color: #4f45d9; background: #efedfd; }
 .radio { display: grid; place-items: center; width: 22px; height: 22px; border: 1.5px solid #d0cde6; border-radius: 50%; }
 .selected .radio { background: #4f45d9; border-color: #4f45d9; color: #fff; }
+.native-slot { flex: none; width: min(100%, 360px); margin-bottom: 48px; border-radius: 16px; overflow: hidden; background: #f4f2fd; }
 .continue { width: min(100%, 360px); min-height: 54px; margin-top: auto; border: 0; border-radius: 30px; background: #4f45d9; color: #fff; font: inherit; font-weight: 600; font-size: 15px; box-shadow: 0 10px 24px #4f45d940; cursor: pointer; transition: transform .2s, opacity .2s; }
 .continue:active { transform: scale(.98); opacity: .9; }
 button:focus-visible { outline: 3px solid #4f45d9; outline-offset: 4px; }
+@media (max-height: 820px) { .language { padding-top: max(36px, calc(env(safe-area-inset-top) + 24px)); } .hero { height: 150px; margin: 16px 0; } .ring { width: 140px; height: 140px; } .globe { width: 84px; height: 84px; border-radius: 26px; } .globe svg { width: 46px; height: 46px; } .bubble { top: 8px; right: 34px; } }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition: none !important; } }
 </style>

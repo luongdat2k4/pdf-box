@@ -1,11 +1,16 @@
 import { ref } from 'vue'
 import { errorMessage } from '@/shared/lib/error'
 import { toast } from '@/shared/ui'
+import { preloadInterstitial, showInterstitial } from '@/shared/ads'
 import { useLibrary } from './store'
 import type { FileMeta } from './types'
 
-/** Shared busy/result handling for the tool screens. */
+/**
+ * Shared busy/result handling for the tool screens. A finished job is a natural break, so an interstitial
+ * (loaded while the user picks files) may show before the result sheet (design-note/ads-plan.md 4.4).
+ */
 export function useRunner() {
+  void preloadInterstitial()
   const busy = ref(false)
   const progress = ref('')
   const result = ref<FileMeta[]>([])
@@ -16,7 +21,10 @@ export function useRunner() {
     progress.value = ''
     try {
       const out = await job()
-      if (out?.length) result.value = out
+      if (out?.length) {
+        await showInterstitial('tool_done')
+        result.value = out
+      }
     } catch (e) {
       console.error(e)
       toast(errorMessage(e), true)

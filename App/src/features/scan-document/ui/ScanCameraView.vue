@@ -6,6 +6,7 @@ import type { PluginListenerHandle } from '@capacitor/core'
 import { Ic, toast } from '@/shared/ui'
 import { t, tp } from '@/shared/i18n'
 import { errorMessage } from '@/shared/lib/error'
+import { expectExternal } from '@/shared/ads'
 import { ScanCamera } from '../lib/scan-camera'
 
 defineProps<{ count: number; thumbnail?: string }>()
@@ -37,7 +38,7 @@ async function start() {
   failure.value = ''
   try {
     await nextTick()
-    if (native) await ScanCamera.start(bounds())
+    if (native) { expectExternal(); await ScanCamera.start(bounds()) } // may ask for camera permission
     else {
       if (!navigator.mediaDevices?.getUserMedia) throw new Error(t('scan.cameraUnavailable'))
       const media = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' } }, audio: false })
@@ -97,6 +98,7 @@ function visibilityChanged() {
 }
 
 async function openSettings() {
+  expectExternal()
   try { await ScanCamera.openSettings() } catch (e) { toast(errorMessage(e), true) }
 }
 

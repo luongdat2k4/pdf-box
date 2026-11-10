@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import type { NativeAdInitOptions, NativeAdRect } from '@alf/app-sdk'
-import { getAds } from '../config'
+import { fullScreenShowing, getAds, overlaysOpen } from '@/shared/ads'
 
 let nextSlot = 0
 const props = withDefaults(defineProps<{
@@ -19,6 +19,9 @@ const slot = props.slot || `pdf-toolbox-native-${++nextSlot}`
 let active = true
 let isShown = false
 let observer: ResizeObserver | undefined
+// Native ads are views above the WebView: they hide while a sheet, dialog or full-screen ad is up.
+const suspended = computed(() => overlaysOpen.value > 0 || fullScreenShowing.value)
+const nextFrame = () => new Promise((resolve) => requestAnimationFrame(resolve))
 
 function rect(): NativeAdRect | null {
   const bounds = element.value?.getBoundingClientRect()
@@ -35,8 +38,12 @@ async function updateRect() {
 
 async function show() {
   const ads = await getAds()
+  if (!ads || !active || suspended.value) return false
+  // Measure only once the route change and layout have settled (design-note/note/native-ad-slot-guide.md).
+  await ads.WhenScreenSettled()
+  await nextFrame(); await nextFrame()
   const bounds = rect()
-  if (!active || !ads || !bounds) return false
+  if (!active || !bounds || suspended.value) return false
   try {
     const shown = await ads.ShowAdMobNativeAd({
       slot,
@@ -64,16 +71,22 @@ onMounted(() => {
     observer = new ResizeObserver(() => { void updateRect() })
     observer.observe(element.value)
   }
-  window.addEventListener('scroll', updateRect, true)
+  // Only on layout changes, never on scroll: these slots sit on screens that do not scroll.
   window.addEventListener('resize', updateRect)
   void show()
+})
+
+watch(suspended, async (hide) => {
+  const ads = await getAds()
+  if (!ads || !active) return
+  if (hide) { if (isShown) await ads.HideAdMobNativeAd(slot) }
+  else void show() // shows the same view again
 })
 
 onUnmounted(() => {
   active = false
   isShown = false
   observer?.disconnect()
-  window.removeEventListener('scroll', updateRect, true)
   window.removeEventListener('resize', updateRect)
   void getAds().then((ads) => ads?.DestroyAdMobNativeAd(slot))
 })

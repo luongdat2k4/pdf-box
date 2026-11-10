@@ -1,12 +1,14 @@
 <script setup lang="ts">
 import { t } from '../../i18n'
-import { nextTick, ref, watch } from 'vue'
+import { computed, nextTick, ref, watch } from 'vue'
+import { holdAdsWhile } from '../../ads'
 import { dialogState, toasts } from './model'
 import Ic from '../Ic.vue'
 
 const text = ref('')
 const input = ref<HTMLInputElement | null>(null)
 const show = ref(false)
+holdAdsWhile(computed(() => dialogState.value !== null))
 
 watch(dialogState, async (s) => {
   if (s?.kind === 'prompt') text.value = s.value
@@ -87,7 +89,7 @@ function ok() {
       </div>
     </div>
 
-    <div class="pointer-events-none fixed inset-x-0 bottom-24 z-[60] flex flex-col items-center gap-2 px-6">
+    <div class="pointer-events-none fixed inset-x-0 bottom-[calc(6rem+var(--ad-inset,0px))] z-[60] flex flex-col items-center gap-2 px-6">
       <div
         v-for="item in toasts"
         :key="item.id"

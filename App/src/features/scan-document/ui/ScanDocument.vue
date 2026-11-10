@@ -6,6 +6,7 @@ import { ToolBar, BottomAction, Ic } from '@/shared/ui'
 import { ResultSheet, savePdf, useRunner } from '@/entities/file'
 import { imagesToPdf, normalizeImage, type RasterImage, PAGE_SIZES, type PageSizeKey, canvasToBlob } from '@/entities/pdf'
 import { timestamp } from '@/shared/lib/format'
+import { expectExternal } from '@/shared/ads'
 
 interface Shot { id: number; blob: Blob; url: string }
 
@@ -16,6 +17,11 @@ const sizes = Object.keys(PAGE_SIZES) as PageSizeKey[]
 const mode = ref<'color' | 'document'>('document')
 const cameraOpen = ref(true)
 const galleryInput = ref<HTMLInputElement | null>(null)
+// The gallery picker leaves the app; coming back from it shows no app-open ad.
+function pickFromGallery() {
+  expectExternal()
+  galleryInput.value?.click()
+}
 let nextId = 1
 
 function add(blob: Blob) {
@@ -96,7 +102,7 @@ onBeforeUnmount(() => shots.value.forEach((s) => URL.revokeObjectURL(s.url)))
 </script>
 
 <template>
-  <ScanCameraView v-if="cameraOpen" :count="shots.length" :thumbnail="shots[shots.length - 1]?.url" @shot="add" @close="cameraOpen = false" @gallery="cameraOpen = false; galleryInput?.click()" />
+  <ScanCameraView v-if="cameraOpen" :count="shots.length" :thumbnail="shots[shots.length - 1]?.url" @shot="add" @close="cameraOpen = false" @gallery="cameraOpen = false; pickFromGallery()" />
   <div v-else class="flex h-full flex-col bg-white">
     <ToolBar :title="t('scan.title')" :subtitle="tp('scan.pages', shots.length)" />
 
@@ -123,7 +129,7 @@ onBeforeUnmount(() => shots.value.forEach((s) => URL.revokeObjectURL(s.url)))
     <div class="flex-none space-y-3 border-t border-line/50 px-4 py-3">
       <div class="flex gap-2">
         <button class="flex h-11 flex-1 items-center justify-center gap-2 rounded-2xl bg-surface-strong text-sm font-semibold text-primary active:opacity-80" @click="cameraOpen = true"><Ic name="camera" :size="20" /> {{ t('scan.camera') }}</button>
-        <button class="flex h-11 flex-1 items-center justify-center gap-2 rounded-2xl bg-surface text-sm font-semibold text-primary active:opacity-80" @click="galleryInput?.click()"><Ic name="image" :size="20" /> {{ t('scan.gallery') }}</button>
+        <button class="flex h-11 flex-1 items-center justify-center gap-2 rounded-2xl bg-surface text-sm font-semibold text-primary active:opacity-80" @click="pickFromGallery()"><Ic name="image" :size="20" /> {{ t('scan.gallery') }}</button>
       </div>
       <div class="flex items-center gap-2">
         <button class="rounded-full px-3.5 py-1.5 text-sm font-medium" :class="mode === 'document' ? 'bg-primary text-white' : 'bg-surface text-ink/70'" @click="mode = 'document'">{{ t('scan.document') }}</button>
