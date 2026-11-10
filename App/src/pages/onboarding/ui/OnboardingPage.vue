@@ -114,10 +114,12 @@ button:focus-visible { outline: 3px solid #4f45d9; outline-offset: 4px; }
 .skip { position: absolute; z-index: 2; top: max(14px, calc(env(safe-area-inset-top) + 8px)); right: 16px; padding: 8px 12px; border: 0; background: transparent; color: #777777; font-size: 14px; font-weight: 500; transition: opacity .2s; }
 .skip.hidden { opacity: 0; pointer-events: none; }
 
-.track { flex: 1; display: flex; overflow-x: auto; overflow-y: hidden; scroll-snap-type: x mandatory; scrollbar-width: none; overscroll-behavior-x: contain; }
+/* Paging reads scrollLeft, so the track stays left to right even in Arabic/Urdu; the text picks its own direction. */
+.track { direction: ltr; flex: 1; display: flex; overflow-x: auto; overflow-y: hidden; scroll-snap-type: x mandatory; scrollbar-width: none; overscroll-behavior-x: contain; }
 .track::-webkit-scrollbar { display: none; }
 .slide { flex: 0 0 100%; min-width: 0; scroll-snap-align: center; scroll-snap-stop: always; display: flex; flex-direction: column; align-items: center; padding: max(64px, calc(env(safe-area-inset-top) + 52px)) 28px 0; text-align: center; }
 
+h1, .description { unicode-bidi: plaintext; }
 h1 { margin: 0; font-size: 30px; line-height: 1.15; letter-spacing: -.8px; font-weight: 700; }
 .description { margin: 12px 0 0; max-width: 300px; font-size: 14px; line-height: 1.55; color: #777777; }
 
