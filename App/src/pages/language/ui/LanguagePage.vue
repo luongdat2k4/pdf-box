@@ -13,13 +13,13 @@ const router = useRouter()
 const nativeSlot = nativePossible && window.innerHeight >= 700
 const list = ref<HTMLElement | null>(null)
 
-// The language picked from the device may be far down the list: bring it into view.
+// The selected language (English on first run, or the saved one) may be far down the list: bring it into view.
 onMounted(async () => {
   await nextTick()
   list.value?.querySelector<HTMLElement>('[aria-checked="true"]')?.scrollIntoView({ block: 'center' })
 })
 
-// A language is preselected from the device setting; choosing is one tap and Continue.
+// English is preselected; choosing another is one tap and Continue.
 function next() {
   void setLocale(locale.value) // stores the choice, which also marks this screen as done
   const query = typeof route.query.next === 'string' ? { next: route.query.next } : {}

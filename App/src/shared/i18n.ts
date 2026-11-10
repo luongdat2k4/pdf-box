@@ -44,12 +44,8 @@ const isLocale = (code: unknown): code is Locale => LANGUAGES.some((l) => l.code
 /** The saved choice, else the device language when we have it, else English. */
 function initial(): Locale {
   const saved = localStorage.getItem(STORAGE_KEY)
-  if (isLocale(saved)) return saved
-  for (const tag of navigator.languages ?? [navigator.language]) {
-    const base = tag.toLowerCase().split('-')[0]
-    if (isLocale(base)) return base
-  }
-  return 'en'
+  // Until the user picks a language, the app starts in English (the device language is not used).
+  return isLocale(saved) ? saved : 'en'
 }
 
 async function load(code: Locale): Promise<void> {
