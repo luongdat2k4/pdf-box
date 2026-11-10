@@ -6,7 +6,8 @@ import { useRoute, useRouter } from 'vue-router'
 import { Ic, toast, VirtualList } from '@/shared/ui'
 import { tp, type MessageKey } from '@/shared/i18n'
 import { errorMessage } from '@/shared/lib/error'
-import { beforeOpenDocument } from '@/shared/ads'
+import { beforeOpenDocument, nativePossible } from '@/shared/ads'
+import { NativeAd } from '@/features/ads'
 import { useDragScroll } from '@/shared/lib/use-drag-scroll'
 import { useDragFab } from '@/shared/lib/use-drag-fab'
 import { PULL_THRESHOLD, usePullRefresh } from '@/shared/lib/use-pull-refresh'
@@ -31,6 +32,10 @@ async function syncFiles(requestAccess = false) {
 // later updates run in the background and are refreshed by pulling the list down.
 const showSyncBar = computed(() => device && tab.value === 'home' && lib.accessChecked
   && (!lib.libraryAccess.hasAccess || (lib.scanning && lib.syncState.initialization !== 'complete')))
+
+// A small native ad heads the list on every tab. It sits right under the type chips, outside the scrolling list,
+// so it never moves with the files or with the access bar below it (design-note/ads-plan.md 4.6).
+const nativeSlot = nativePossible && window.innerHeight >= 640
 
 /** Resolves once the library is no longer indexing or updating (or after a timeout). */
 function syncSettled(timeoutMs = 30000): Promise<void> {
@@ -162,6 +167,12 @@ async function pick() {
         </span>
         <span class="text-[12px] leading-none" :class="filter === c.id ? 'font-semibold text-primary' : 'text-ink/65'">{{ chipLabel(c) }}</span>
       </button>
+    </div>
+
+    <div v-if="nativeSlot" class="flex-none bg-surface px-3 pb-2">
+      <div class="overflow-hidden rounded-2xl bg-white">
+        <NativeAd slot="home_list" template="small" :height="96" />
+      </div>
     </div>
 
     <div v-if="showSyncBar" class="flex flex-none items-center gap-3 border-b border-surface-strong bg-surface px-4 py-3" aria-live="polite">

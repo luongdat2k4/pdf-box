@@ -36,7 +36,7 @@ Ngoài ra app **rất hay tự rời màn hình** để mở màn hệ thống: 
 | Sau onboarding | — | — | — | Lần đầu không có quảng cáo toàn màn hình |
 | `/launch` (mới) | — | — | **App open** khi mở app nguội | Hạn 5 giây, quá hạn thì bỏ |
 | `/begin` | Có | `medium` (`small` nếu máy thấp) | — | Đã có chỗ sẵn. Đếm ngược 3 giây |
-| `/`, `/history`, `/favorites` | **Có** | — | — | Nút nổi (FAB) phải nằm trên banner |
+| `/`, `/history`, `/favorites` | **Có** | `small` ở đầu danh sách, cả 3 tab | — | Nút nổi (FAB) phải nằm trên banner. Ô native cố định dưới hàng lọc loại tệp, ngoài vùng cuộn |
 | `/search` | Có, ẩn khi bàn phím mở | — | — | |
 | `/reader/:id`, `/office/:id` | — | — | Interstitial **trước khi** mở tài liệu (mục 4.3) | Bên trong trình đọc không có quảng cáo |
 | `/tool/*` lúc chọn tệp và chạy | — | — | — | Nút chính ở đáy, không đặt banner |
@@ -112,9 +112,9 @@ bấm nút → đang xử lý (tải sẵn interstitial song song) → xong
 
 ### 4.6. Native
 
-Chỉ ở **màn tĩnh, không cuộn**: `/language` (`small`) và `/begin` (`medium`). Ô native nằm ngoài vùng cuộn, giữ chỗ cố định, và có nhãn "Quảng cáo" kèm AdChoices do SDK vẽ (theo `note/native-ad-slot-guide.md`).
+Chỉ ở **màn tĩnh, không cuộn**: `/language` (`small`), `/begin` (`medium`), và đầu danh sách ở trang chủ (`small`, cả tab Home, History, Favorites). Ô ở trang chủ nằm cố định ngay dưới hàng lọc loại tệp, trên dải xin quyền và danh sách cuộn, nên không trôi theo tệp; máy thấp hơn 640px thì không có. Ô native nằm ngoài vùng cuộn, giữ chỗ cố định, và có nhãn "Quảng cáo" kèm AdChoices do SDK vẽ (theo `note/native-ad-slot-guide.md`).
 
-Không chèn native vào danh sách tệp. Native trong danh sách cuộn bị trễ và đè lên header (đã ghi trong ghi chú kia), và người dùng dễ tưởng đó là một tệp.
+Không chèn native **vào giữa** danh sách tệp (ô ở đầu danh sách là cố định, không phải một dòng của danh sách). Native trong danh sách cuộn bị trễ và đè lên header (đã ghi trong ghi chú kia), và người dùng dễ tưởng đó là một tệp.
 
 ### 4.7. Rewarded
 
@@ -179,7 +179,7 @@ Trong `App/src/shared/ads/config.ts` (Android trước):
 | `applovin.android.interstitial` | Khởi động (dự phòng), mở tài liệu, xong công cụ |
 | `admob.android.appId` | Thay ID test của Google. Phải khớp `ADMOB_APP_ID` trong `android/app/build.gradle` |
 | `admob.android.openApp` | App open khi khởi động và khi resume |
-| `admob.android.native` | `/language`, `/begin` |
+| `admob.android.native` | `/language`, `/begin`, đầu danh sách trang chủ |
 
 Khi phát triển thì đặt `testAds: true`. Trước khi phát hành, đặt `dev: false` và giữ `testAds: false`.
 
