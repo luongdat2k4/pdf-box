@@ -8,16 +8,12 @@
   "onboarding.read": "Read with ease",
   "onboarding.allInOne": "All in one place",
   "onboarding.footer": "A little less effort. A lot more done.",
-  "onboarding.changeLater": "You can change your language anytime in Settings.",
   "onboarding.welcome.eyebrow": "YOUR EVERYDAY PDF COMPANION",
   "onboarding.welcome.title": "Big ideas.\nOne little toolbox.",
   "onboarding.welcome.description": "Read, organize and keep your documents close. A simpler way to make every page count.",
   "onboarding.tools.eyebrow": "LESS WORK. MORE POSSIBILITIES.",
   "onboarding.tools.title": "A little magic\nfor every document.",
   "onboarding.tools.description": "Scan, merge, split and convert. All your everyday PDF tools, together in one handy place.",
-  "onboarding.language.eyebrow": "MAKE YOURSELF AT HOME",
-  "onboarding.language.title": "Your language.\nYour toolbox.",
-  "onboarding.language.description": "Choose the language you feel most at home with. Let's make this yours.",
   "slides.fileTooLarge": "This presentation exceeds the 32 MiB limit for safe viewing on mobile.",
   "slides.invalidFile": "This presentation has an invalid file structure and was blocked before parsing.",
   "slides.resourceLimit": "This presentation exceeds the safe processing limits. Try a smaller file.",
@@ -280,5 +276,6 @@
   "home.trash": "Trash",
   "merge.addFile": "Add file",
   "scan.camera": "Camera",
-  "scan.gallery": "Gallery"
+  "scan.gallery": "Gallery",
+  "language.choose": "Choose your language"
 }

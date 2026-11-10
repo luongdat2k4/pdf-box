@@ -8,16 +8,12 @@
   "onboarding.read": "Đọc thật dễ dàng",
   "onboarding.allInOne": "Tất cả trong tầm tay",
   "onboarding.footer": "Thao tác ít hơn. Làm được nhiều hơn.",
-  "onboarding.changeLater": "Bạn có thể đổi ngôn ngữ bất cứ lúc nào trong Cài đặt.",
   "onboarding.welcome.eyebrow": "NGƯỜI BẠN ĐỒNG HÀNH CÙNG PDF",
   "onboarding.welcome.title": "Ý tưởng lớn.\nHộp công cụ nhỏ.",
   "onboarding.welcome.description": "Đọc, sắp xếp và lưu giữ tài liệu ngay trong tầm tay. Để mỗi trang giấy đều trở nên hữu ích.",
   "onboarding.tools.eyebrow": "NHẸ THAO TÁC. THÊM KHẢ NĂNG.",
   "onboarding.tools.title": "Thêm tiện ích.\nBớt công việc.",
   "onboarding.tools.description": "Quét, ghép, tách và chuyển đổi. Mọi công cụ PDF bạn cần, gói gọn trong một ứng dụng.",
-  "onboarding.language.eyebrow": "MỘT CHÚT CÁ TÍNH CỦA BẠN",
-  "onboarding.language.title": "Ngôn ngữ của bạn.\nTrải nghiệm của bạn.",
-  "onboarding.language.description": "Chọn ngôn ngữ bạn thấy thoải mái nhất. Cùng bắt đầu theo cách của riêng bạn nhé.",
   "slides.fileTooLarge": "File trình chiếu vượt giới hạn 32 MiB để xem an toàn trên điện thoại.",
   "slides.invalidFile": "Cấu trúc file trình chiếu không hợp lệ. App đã chặn trước khi phân tích.",
   "slides.resourceLimit": "File trình chiếu vượt giới hạn xử lý an toàn. Hãy thử file nhỏ hơn.",
@@ -280,5 +276,6 @@
   "home.trash": "Thùng rác",
   "merge.addFile": "Thêm tệp",
   "scan.camera": "Máy ảnh",
-  "scan.gallery": "Thư viện ảnh"
+  "scan.gallery": "Thư viện ảnh",
+  "language.choose": "Chọn ngôn ngữ của bạn"
 }

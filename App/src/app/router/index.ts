@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { isOnboardingComplete } from '@/features/onboarding'
+import { hasChosenLocale } from '@/shared/i18n'
 
 // Clean URLs (no /#/). Capacitor's local server and the Vite dev server fall back to index.html for unknown paths;
 // a static web host needs the same fallback (rewrite every path to /index.html).
@@ -7,6 +8,7 @@ import { isOnboardingComplete } from '@/features/onboarding'
 export const router = createRouter({
   history: createWebHistory(),
   routes: [
+    { path: '/language', name: 'language', component: () => import('@/pages/language').then((m) => m.LanguagePage) },
     { path: '/onboarding', name: 'onboarding', component: () => import('@/pages/onboarding').then((m) => m.OnboardingPage) },
     // Home tabs are routes of the same page (/, /history, /favorites); the type chip is the `?type=` query.
     { path: '/', alias: '/home', name: 'home', component: () => import('@/pages/home').then((m) => m.HomePage) },
@@ -30,7 +32,8 @@ export const router = createRouter({
 })
 
 router.beforeEach((to) => {
-  if (!isOnboardingComplete() && to.name !== 'onboarding') {
-    return { name: 'onboarding', query: { next: to.fullPath }, replace: true }
-  }
+  // First run: pick a language, then the intro screens, then the app.
+  if (isOnboardingComplete()) return
+  const step = hasChosenLocale() ? 'onboarding' : 'language'
+  if (to.name !== step) return { name: step, query: { next: to.fullPath }, replace: true }
 })

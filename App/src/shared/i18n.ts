@@ -26,6 +26,11 @@ function initial(): Locale {
 export const locale = ref<Locale>(initial())
 document.documentElement.lang = locale.value
 
+/** True once the user has picked a language (as opposed to the one guessed from the device). */
+export function hasChosenLocale(): boolean {
+  return localStorage.getItem(STORAGE_KEY) !== null
+}
+
 export function setLocale(code: Locale): void {
   locale.value = code
   localStorage.setItem(STORAGE_KEY, code)
