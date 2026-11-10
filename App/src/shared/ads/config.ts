@@ -22,10 +22,17 @@ export const adsConfig: Config = {
     environment: import.meta.env.PROD ? 'production' : 'dev',
   },
   keys: {
-    // AppLovin MAX serves banner, MREC and interstitial when its keys are filled in. They are left empty here:
-    // ad units belong to one app, so create PDF Toolbox's own in the MAX dashboard and paste them in.
+    // AppLovin MAX serves banner, MREC and interstitial (PDF Toolbox's own Android units). While `testAds` is on,
+    // MAX registers the device as a test device, so these real units still only return test ads.
     applovin: {
-      android: { sdkKey: '', banner: '', mrec: '', interstitial: '', rewarded: '', appOpen: '' },
+      android: {
+        sdkKey: 'eQt0q3679KmUyKeNcSzqC01eB-lILmfTnJoufGxpSn__n1NVhHLeMgxZOaICke451El4ZBfuZum9Qw4WxzpW52',
+        banner: 'bc3c55441ed976de',
+        mrec: '95b47fbeec437b11',
+        interstitial: '1c39bd37a52aa9aa',
+        rewarded: '808e3a3d698a7385',
+        appOpen: '6b789db169cce90d',
+      },
       ios: { sdkKey: '', banner: '', mrec: '', interstitial: '', rewarded: '', appOpen: '' },
     },
     admob: {
