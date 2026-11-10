@@ -2,7 +2,10 @@
 import { ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { completeOnboarding } from '@/features/onboarding'
+import { useLibrary } from '@/entities/file'
 import { t } from '@/shared/i18n'
+import { isNative } from '@/shared/lib/platform'
+import { askConfirm } from '@/shared/ui'
 
 const route = useRoute()
 const router = useRouter()
@@ -38,12 +41,25 @@ function advance() {
   else goTo(index.value + 1)
 }
 
-function finish() {
+const lib = useLibrary()
+
+async function finish() {
   completeOnboarding()
   const next = route.query.next
   const destination = typeof next === 'string' && next.startsWith('/') && !next.startsWith('//')
     && router.resolve(next).name !== 'onboarding' ? next : '/'
-  void router.replace(destination)
+  await router.replace(destination)
+  await offerDeviceAccess()
+}
+
+// Ask in the app first; the system "All files access" screen opens only if the user agrees.
+async function offerDeviceAccess() {
+  if (!isNative()) return
+  await lib.start().catch(() => {})
+  if (lib.libraryAccess.hasAccess) return
+  const yes = await askConfirm(t('onboarding.access.title'), t('onboarding.access.message'),
+    t('onboarding.access.allow'), false, t('onboarding.access.later'))
+  if (yes) await lib.syncDeviceFiles(true).catch(() => {})
 }
 </script>
 

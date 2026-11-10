@@ -3,7 +3,7 @@ import { ref } from 'vue'
 export type DialogState =
   | { kind: 'password'; title: string; message?: string; error: boolean; resolve: (v: string | null) => void }
   | { kind: 'prompt'; title: string; label: string; value: string; confirmText: string; resolve: (v: string | null) => void }
-  | { kind: 'confirm'; title: string; message: string; confirmText: string; danger: boolean; resolve: (v: boolean) => void }
+  | { kind: 'confirm'; title: string; message: string; confirmText: string; cancelText?: string; danger: boolean; resolve: (v: boolean) => void }
 
 export const dialogState = ref<DialogState | null>(null)
 
@@ -19,9 +19,9 @@ export function askText(title: string, label: string, value = '', confirmText = 
   })
 }
 
-export function askConfirm(title: string, message: string, confirmText = 'OK', danger = false): Promise<boolean> {
+export function askConfirm(title: string, message: string, confirmText = 'OK', danger = false, cancelText?: string): Promise<boolean> {
   return new Promise((resolve) => {
-    dialogState.value = { kind: 'confirm', title, message, confirmText, danger, resolve }
+    dialogState.value = { kind: 'confirm', title, message, confirmText, cancelText, danger, resolve }
   })
 }
 

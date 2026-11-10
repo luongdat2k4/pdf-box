@@ -74,7 +74,7 @@ function ok() {
 
         <div class="mt-5 flex justify-end gap-2">
           <button class="rounded-xl px-4 py-2 text-sm font-medium text-ink/70 active:bg-surface" @click="cancel">
-            {{ t('common.cancel') }}
+            {{ (dialogState.kind === 'confirm' && dialogState.cancelText) || t('common.cancel') }}
           </button>
           <button
             class="rounded-xl px-4 py-2 text-sm font-semibold text-white active:opacity-80"

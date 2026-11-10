@@ -91,7 +91,8 @@ export const useLibrary = defineStore('library', () => {
     scanPending = (async () => {
       try {
         libraryAccess.value = await api.getLibraryAccess()
-        if (!libraryAccess.value.hasAccess && (requestAccess || !libraryAccess.value.prompted)) {
+        // The system permission screen only opens on an explicit request (never at launch).
+        if (!libraryAccess.value.hasAccess && requestAccess) {
           libraryAccess.value = await api.requestLibraryAccess()
         }
         if (libraryAccess.value.hasAccess) {
