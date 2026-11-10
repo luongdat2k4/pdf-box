@@ -1,59 +1,59 @@
 import { Capacitor } from '@capacitor/core'
-import { ALF, initSDK, type Config } from '@alf/app-sdk'
+import { ALF, type Config } from '@alf/app-sdk'
 
-const env = import.meta.env
+// Google's official test app IDs. With `settings.testAds` the SDK requests Google's test ad units for every
+// AdMob format, so ads fill without a real AdMob account. Before shipping: replace both app IDs and the ad
+// units below, and set `dev` to false (and `testAds` stays false).
+// The Android app ID must also match `ADMOB_APP_ID` in android/app/build.gradle (the manifest placeholder).
+const TEST_APP_ID = {
+  android: 'ca-app-pub-3940256099942544~3347511713',
+  ios: 'ca-app-pub-3940256099942544~1458002511',
+}
 
 export const adsConfig: Config = {
   settings: {
-    dev: env.DEV,
-    testAds: env.DEV,
+    dev: true,
+    testAds: false,
     isGame: false,
     isApp: true,
     appName: 'PDF Toolbox',
     appVersion: '0.1.0',
-    environment: env.PROD ? 'production' : 'dev',
+    environment: import.meta.env.PROD ? 'production' : 'dev',
   },
   keys: {
-    admob: {
-      android: {
-        appId: env.VITE_ALF_ADMOB_ANDROID_APP_ID || '',
-        banner: env.VITE_ALF_ADMOB_ANDROID_BANNER || '',
-        interstitial: env.VITE_ALF_ADMOB_ANDROID_INTERSTITIAL || '',
-        rewarded: env.VITE_ALF_ADMOB_ANDROID_REWARDED || '',
-        openApp: env.VITE_ALF_ADMOB_ANDROID_APP_OPEN || '',
-        native: env.VITE_ALF_ADMOB_ANDROID_NATIVE || '',
-      },
-      ios: {
-        appId: env.VITE_ALF_ADMOB_IOS_APP_ID || '',
-        banner: env.VITE_ALF_ADMOB_IOS_BANNER || '',
-        interstitial: env.VITE_ALF_ADMOB_IOS_INTERSTITIAL || '',
-        rewarded: env.VITE_ALF_ADMOB_IOS_REWARDED || '',
-        openApp: env.VITE_ALF_ADMOB_IOS_APP_OPEN || '',
-        native: env.VITE_ALF_ADMOB_IOS_NATIVE || '',
-      },
-    },
+    // AppLovin MAX serves banner, MREC and interstitial when its keys are filled in. They are left empty here:
+    // ad units belong to one app, so create PDF Toolbox's own in the MAX dashboard and paste them in.
     applovin: {
-      android: {
-        sdkKey: env.VITE_ALF_MAX_ANDROID_SDK_KEY || '',
-        banner: env.VITE_ALF_MAX_ANDROID_BANNER || '',
-        mrec: env.VITE_ALF_MAX_ANDROID_MREC || '',
-        interstitial: env.VITE_ALF_MAX_ANDROID_INTERSTITIAL || '',
-        rewarded: env.VITE_ALF_MAX_ANDROID_REWARDED || '',
-        appOpen: env.VITE_ALF_MAX_ANDROID_APP_OPEN || '',
-      },
-      ios: {
-        sdkKey: env.VITE_ALF_MAX_IOS_SDK_KEY || '',
-        banner: env.VITE_ALF_MAX_IOS_BANNER || '',
-        mrec: env.VITE_ALF_MAX_IOS_MREC || '',
-        interstitial: env.VITE_ALF_MAX_IOS_INTERSTITIAL || '',
-        rewarded: env.VITE_ALF_MAX_IOS_REWARDED || '',
-        appOpen: env.VITE_ALF_MAX_IOS_APP_OPEN || '',
-      },
+      android: { sdkKey: '', banner: '', mrec: '', interstitial: '', rewarded: '', appOpen: '' },
+      ios: { sdkKey: '', banner: '', mrec: '', interstitial: '', rewarded: '', appOpen: '' },
+    },
+    admob: {
+      android: { appId: TEST_APP_ID.android, banner: '', interstitial: '', rewarded: '', openApp: '', native: '' },
+      ios: { appId: TEST_APP_ID.ios, banner: '', interstitial: '', rewarded: '', openApp: '', native: '' },
     },
   },
 }
 
 let initialization: Promise<boolean> | undefined
+/** Resolves once AdMob has finished starting; resolved already when it is not needed to show ads. */
+export let adMobReady: Promise<void> = Promise.resolve()
+
+// Ads only: the rest of the framework (analytics, push, i18n, IAP) is not initialised, so booting it cannot prompt or
+// log anything the app didn't ask for.
+async function initAds(): Promise<void> {
+  const alf = ALF.Instance
+  await alf.initControllers()
+  alf.Config.set(adsConfig)
+  // MAX serves the banner, MREC and interstitials, so only it is waited for. AdMob starts alongside and is only
+  // awaited when the AdMob test units are in use (testAds) or an app-open unit is loaded.
+  adMobReady = alf.Ads.initAdMob()
+  adMobReady.catch(() => {})
+  // Ads.init() starts AppLovin and throws without an SDK key, which would also take AdMob down with it.
+  const platform = Capacitor.getPlatform() === 'ios' ? 'ios' : 'android'
+  const hasMax = Boolean(adsConfig.keys.applovin?.[platform].sdkKey)
+  if (hasMax) await alf.Ads.init()
+  if (!hasMax || adsConfig.settings?.testAds === true) await adMobReady
+}
 
 export function initAdsSdk(): Promise<boolean> {
   if (!Capacitor.isNativePlatform()) return Promise.resolve(false)
@@ -63,7 +63,7 @@ export function initAdsSdk(): Promise<boolean> {
   const hasMax = Boolean(adsConfig.keys.applovin?.[platform].sdkKey)
   if (!hasAdMob && !hasMax) return Promise.resolve(false)
 
-  initialization ??= initSDK(adsConfig)
+  initialization ??= initAds()
     .then(() => true)
     .catch((error: unknown) => {
       console.error('ALF SDK initialization failed', error)

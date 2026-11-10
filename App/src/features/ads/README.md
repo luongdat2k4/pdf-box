@@ -1,9 +1,13 @@
 # Ads
 
-`config.ts` initializes ALF SDK before the app mounts. It reads ad IDs from Vite
-environment variables; see `App/.env.example`. Web and native builds without an
-AdMob app ID or AppLovin SDK key skip ad initialization. Development builds use
-SDK test ads.
+`config.ts` holds the ad configuration and initializes the ALF SDK before the app mounts
+(`initAdsSdk`, called from `app/main.ts`). Keys are written in the file itself, the same way as the
+Pulse app: Google's test AdMob app IDs by default, and empty AppLovin MAX keys to fill in once PDF
+Toolbox's own MAX ad units exist. Web builds, and native builds with no AdMob app ID and no MAX SDK key,
+skip ad initialization. `settings.testAds` makes the SDK serve Google's test ads.
+
+Before shipping: replace the AdMob app IDs and ad units, fill in the MAX keys, and set `ADMOB_APP_ID` for
+the Android build (see `android/app/build.gradle`) to the same Android app ID.
 
 Import components from `@/features/ads`:
 
