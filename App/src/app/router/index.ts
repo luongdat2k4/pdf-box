@@ -34,6 +34,7 @@ export const router = createRouter({
     { path: '/tool/delete', name: 'delete', component: () => import('@/pages/delete-files').then((m) => m.DeleteFilesPage) },
     { path: '/trash', name: 'trash', component: () => import('@/pages/trash').then((m) => m.TrashPage), meta: { banner: true } },
     { path: '/settings', name: 'settings', component: () => import('@/pages/settings').then((m) => m.SettingsPage), meta: { banner: true } },
+    { path: '/settings/language', name: 'settings-language', component: () => import('@/pages/settings').then((m) => m.SettingsLanguagePage), meta: { banner: true } },
     { path: '/:pathMatch(.*)*', redirect: '/' },
   ],
 })
