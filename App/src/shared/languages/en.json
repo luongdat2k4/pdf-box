@@ -277,5 +277,7 @@
   "merge.addFile": "Add file",
   "scan.camera": "Camera",
   "scan.gallery": "Gallery",
-  "language.choose": "Choose your language"
+  "language.choose": "Choose your language",
+  "begin.subtitle": "Your documents, ready when you are.",
+  "begin.continue": "Continue"
 }

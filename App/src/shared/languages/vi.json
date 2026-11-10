@@ -277,5 +277,7 @@
   "merge.addFile": "Thêm tệp",
   "scan.camera": "Máy ảnh",
   "scan.gallery": "Thư viện ảnh",
-  "language.choose": "Chọn ngôn ngữ của bạn"
+  "language.choose": "Chọn ngôn ngữ của bạn",
+  "begin.subtitle": "Tài liệu của bạn đã sẵn sàng.",
+  "begin.continue": "Tiếp tục"
 }

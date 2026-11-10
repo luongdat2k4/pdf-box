@@ -16,7 +16,7 @@ onMounted(() => {
     void openedFiles((route) => void router.push(route))
     // Android back button: go back in history, exit at the root.
     void CapApp.addListener('backButton', () => {
-      const root = ['home', 'history', 'favorites'].includes(String(router.currentRoute.value.name))
+      const root = ['home', 'history', 'favorites', 'begin'].includes(String(router.currentRoute.value.name))
       if (window.history.length > 1 && !root) router.back()
       else void CapApp.exitApp()
     })
