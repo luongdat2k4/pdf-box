@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { t } from '@/shared/i18n'
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { isNative } from '@/shared/lib/platform'
 import { useRoute, useRouter } from 'vue-router'
 import { Ic, toast, VirtualList } from '@/shared/ui'
@@ -9,6 +9,7 @@ import { errorMessage } from '@/shared/lib/error'
 import { beforeOpenDocument } from '@/shared/ads'
 import { useDragScroll } from '@/shared/lib/use-drag-scroll'
 import { useDragFab } from '@/shared/lib/use-drag-fab'
+import { PULL_THRESHOLD, usePullRefresh } from '@/shared/lib/use-pull-refresh'
 import { FileRow, openRoute, useLibrary, type FileKind, type FileMeta } from '@/entities/file'
 import { ToolsSheet } from '@/widgets/tools-sheet'
 import { FileMenu } from '@/widgets/file-menu'
@@ -25,6 +26,26 @@ async function syncFiles(requestAccess = false) {
   try { await lib.syncDeviceFiles(requestAccess) }
   catch (err) { toast(errorMessage(err), true) }
 }
+
+// The sync bar is only for asking access and for the first index after it is granted;
+// later updates run in the background and are refreshed by pulling the list down.
+const showSyncBar = computed(() => device && tab.value === 'home' && lib.accessChecked
+  && (!lib.libraryAccess.hasAccess || (lib.scanning && lib.syncState.initialization !== 'complete')))
+
+/** Resolves once the library is no longer indexing or updating (or after a timeout). */
+function syncSettled(timeoutMs = 30000): Promise<void> {
+  return new Promise((resolve) => {
+    const timer = setTimeout(done, timeoutMs)
+    const stop = watch(() => lib.scanning || lib.updating, (busy) => { if (!busy) done() }, { immediate: true })
+    function done() { clearTimeout(timer); queueMicrotask(() => stop()); resolve() }
+  })
+}
+
+const listWrap = ref<HTMLElement | null>(null)
+const ptr = usePullRefresh(listWrap, async () => {
+  await syncFiles()
+  await syncSettled()
+}, () => device && tab.value === 'home' && lib.libraryAccess.hasAccess)
 // One type is always selected; PDF when the URL names none.
 const filter = computed<FileKind>(() => {
   const t = String(route.query.type ?? '')
@@ -143,19 +164,35 @@ async function pick() {
       </button>
     </div>
 
-    <div v-if="device && tab === 'home'" class="flex flex-none items-center gap-3 border-b border-surface-strong bg-surface px-4 py-3" aria-live="polite">
-      <Ic v-if="lib.scanning || lib.updating" name="loading" class="shrink-0 animate-spin text-primary" />
+    <div v-if="showSyncBar" class="flex flex-none items-center gap-3 border-b border-surface-strong bg-surface px-4 py-3" aria-live="polite">
+      <Ic v-if="lib.scanning" name="loading" class="shrink-0 animate-spin text-primary" />
       <p class="min-w-0 flex-1 text-xs text-ink/65">
-        {{ lib.scanning ? t('home.indexing', { count: lib.syncState.processed }) : t(lib.updating ? 'home.updating' : lib.syncState.phase === 'error' ? 'home.syncFailed' : lib.libraryAccess.hasAccess ? 'home.deviceConnected' : 'home.deviceAccessHint') }}
+        {{ lib.libraryAccess.hasAccess ? t('home.indexing', { count: lib.syncState.processed }) : t('home.deviceAccessHint') }}
       </p>
-      <button v-if="lib.libraryAccess.hasAccess" :disabled="lib.scanning || lib.updating" class="shrink-0 whitespace-nowrap rounded-full border border-primary/40 bg-white px-3.5 py-1.5 text-xs font-semibold text-primary shadow-sm shadow-primary/10 active:bg-primary/10 disabled:opacity-40" @click="syncFiles()">
-        {{ t('home.refreshFiles') }}
-      </button>
       <button v-if="!lib.libraryAccess.hasAccess" :disabled="lib.scanning" class="shrink-0 whitespace-nowrap rounded-full border border-primary/40 bg-white px-3.5 py-1.5 text-xs font-semibold text-primary shadow-sm shadow-primary/10 active:bg-primary/10 disabled:opacity-40" @click="syncFiles(true)">
         {{ t('home.grantDeviceAccess') }}
       </button>
     </div>
 
+    <div ref="listWrap" class="relative flex min-h-0 flex-1 flex-col">
+    <!-- Pull-to-refresh indicator: follows the finger, spins while the background update runs. -->
+    <div
+      v-if="ptr.pull.value > 0 || ptr.refreshing.value"
+      class="pointer-events-none absolute inset-x-0 top-0 z-10 flex justify-center"
+      :class="ptr.dragging.value ? '' : 'transition-transform duration-200'"
+      :style="{ transform: `translateY(${ptr.pull.value - 36}px)` }"
+      role="status"
+      :aria-label="t('home.updating')"
+    >
+      <span class="grid size-9 place-items-center rounded-full bg-white text-primary shadow-md shadow-primary/20 ring-1 ring-line">
+        <Ic
+          name="loading"
+          :size="20"
+          :class="ptr.refreshing.value ? 'animate-spin' : ''"
+          :style="ptr.refreshing.value ? undefined : { transform: `rotate(${ptr.pull.value * 4}deg)`, opacity: Math.min(1, ptr.pull.value / PULL_THRESHOLD) }"
+        />
+      </span>
+    </div>
     <VirtualList :items="list" :reset-key="`${tab}:${filter}`" :bottom-space="112" class="bg-white px-2" :aria-label="t('home.tab.home')">
       <template #empty>
       <div class="grid h-full place-items-center px-10 text-center">
@@ -172,6 +209,7 @@ async function pick() {
         <FileRow :file="f" actions @click="open(f)" @star="lib.toggleFavorite(f.id)" @menu="menuFile = f" />
       </template>
     </VirtualList>
+    </div>
 
     <button
       ref="fabEl"

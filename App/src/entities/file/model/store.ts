@@ -34,6 +34,8 @@ export const useLibrary = defineStore('library', () => {
   const loaded = ref(false)
   const searchRevision = ref(0)
   const libraryAccess = ref({ hasAccess: false, prompted: true })
+  /** False until the device permission has been checked once, so the UI does not guess. */
+  const accessChecked = ref(false)
   const scanning = ref(false)
   const syncState = ref<LibrarySyncState>({ hasAccess: false, initialization: 'not_started', phase: 'idle', processed: 0 })
   const updating = computed(() => syncState.value.phase === 'updating')
@@ -91,6 +93,7 @@ export const useLibrary = defineStore('library', () => {
     scanPending = (async () => {
       try {
         libraryAccess.value = await api.getLibraryAccess()
+        accessChecked.value = true
         // The system permission screen only opens on an explicit request (never at launch).
         if (!libraryAccess.value.hasAccess && requestAccess) {
           libraryAccess.value = await api.requestLibraryAccess()
@@ -101,6 +104,7 @@ export const useLibrary = defineStore('library', () => {
         }
       } catch (e) {
         libraryAccess.value = await api.getLibraryAccess().catch(() => libraryAccess.value)
+        accessChecked.value = true
         syncState.value = { ...syncState.value, hasAccess: libraryAccess.value.hasAccess,
           phase: libraryAccess.value.hasAccess ? 'error' : 'permission_required' }
         if ((e as Error).name !== 'AbortError') throw e
@@ -308,7 +312,7 @@ export const useLibrary = defineStore('library', () => {
   }
 
   return {
-    items, loaded, all, recent, favorites, byKind, pdfs, images, documents, searchRevision, libraryAccess, scanning, syncDeviceFiles, syncState, updating, start, stop,
+    items, loaded, all, recent, favorites, byKind, pdfs, images, documents, searchRevision, libraryAccess, accessChecked, scanning, syncDeviceFiles, syncState, updating, start, stop,
     load, find, addBlob, importFiles, importFromDevice, blobOf, bytesOf, touch, toggleFavorite, rename, replaceBlob, remove,
     saveProgress, adopt, watchRemovals,
   }
