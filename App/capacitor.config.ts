@@ -1,7 +1,7 @@
 import type { CapacitorConfig } from '@capacitor/cli'
 
 const config: CapacitorConfig = {
-  appId: 'vn.alf.pdftoolbox',
+  appId: 'com.zl.pdf.reader.tool',
   appName: 'PDF Toolbox',
   webDir: 'dist',
   android: {

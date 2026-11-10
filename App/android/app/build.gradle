@@ -6,7 +6,7 @@ android {
     namespace = "vn.alf.pdftoolbox"
     compileSdk = rootProject.ext.compileSdkVersion
     defaultConfig {
-        applicationId "vn.alf.pdftoolbox"
+        applicationId "com.zl.pdf.reader.tool"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
