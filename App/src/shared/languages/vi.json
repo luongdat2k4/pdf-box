@@ -114,6 +114,7 @@
   "file.type": "Loại",
   "file.added": "Ngày thêm",
   "file.detail": "Chi tiết tệp",
+  "file.convertToPdf": "Chuyển sang PDF",
   "file.renameTitle": "Đổi tên tệp",
   "file.deleteTitle": "Xóa tệp?",
   "file.deleteMsg": "Chuyển \"{name}\" vào Thùng rác? Bạn có thể khôi phục tệp sau.",

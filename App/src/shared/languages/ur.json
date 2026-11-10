@@ -114,6 +114,7 @@
   "file.type": "قسم",
   "file.added": "شامل کی گئی",
   "file.detail": "فائل کی تفصیل",
+  "file.convertToPdf": "PDF میں تبدیل کریں",
   "file.renameTitle": "فائل کا نام بدلیں",
   "file.deleteTitle": "فائل حذف کریں؟",
   "file.deleteMsg": "\"{name}\" کو ٹریش میں منتقل کریں؟ آپ اسے بعد میں بحال کر سکتے ہیں۔",

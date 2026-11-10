@@ -114,6 +114,7 @@
   "file.type": "Tipo",
   "file.added": "Añadido",
   "file.detail": "Detalles del archivo",
+  "file.convertToPdf": "Convertir a PDF",
   "file.renameTitle": "Cambiar nombre del archivo",
   "file.deleteTitle": "¿Eliminar archivo?",
   "file.deleteMsg": "¿Mover «{name}» a la papelera? Podrás restaurarlo más tarde.",

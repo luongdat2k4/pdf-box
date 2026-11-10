@@ -114,6 +114,7 @@
   "file.type": "ประเภท",
   "file.added": "เพิ่มเมื่อ",
   "file.detail": "รายละเอียดไฟล์",
+  "file.convertToPdf": "แปลงเป็น PDF",
   "file.renameTitle": "เปลี่ยนชื่อไฟล์",
   "file.deleteTitle": "ลบไฟล์?",
   "file.deleteMsg": "ย้าย \"{name}\" ไปที่ถังขยะ? คุณกู้คืนได้ภายหลัง",

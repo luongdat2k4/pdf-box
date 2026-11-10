@@ -114,6 +114,7 @@
   "file.type": "Tipo",
   "file.added": "Aggiunto",
   "file.detail": "Dettagli file",
+  "file.convertToPdf": "Converti in PDF",
   "file.renameTitle": "Rinomina file",
   "file.deleteTitle": "Eliminare il file?",
   "file.deleteMsg": "Spostare \"{name}\" nel Cestino? Potrai ripristinarlo più tardi.",

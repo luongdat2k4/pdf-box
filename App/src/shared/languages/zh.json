@@ -114,6 +114,7 @@
   "file.type": "类型",
   "file.added": "添加时间",
   "file.detail": "文件详情",
+  "file.convertToPdf": "转换为 PDF",
   "file.renameTitle": "重命名文件",
   "file.deleteTitle": "删除文件？",
   "file.deleteMsg": "将“{name}”移到回收站？您之后可以恢复。",

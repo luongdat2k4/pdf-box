@@ -37,7 +37,7 @@ function run(fn: (f: FileMeta) => unknown) {
   <BottomSheet :open="!!file" :title="file?.name" @close="emit('close')">
     <div v-if="file" class="divide-y divide-line/40">
       <button class="flex w-full items-center gap-3 py-3 text-sm" @click="run((f) => emit('open', f))"><Ic name="next" :size="20" /> {{ t('common.open') }}</button>
-      <button v-if="file.kind === 'image'" class="flex w-full items-center gap-3 py-3 text-sm" @click="run(convertToPdf)"><Ic name="doc" :size="20" /> {{ t('tool.img2pdf') }}</button>
+      <button v-if="file.kind === 'image'" class="flex w-full items-center gap-3 py-3 text-sm" @click="run(convertToPdf)"><Ic name="doc" :size="20" /> {{ t('file.convertToPdf') }}</button>
       <button class="flex w-full items-center gap-3 py-3 text-sm" @click="run(actions.rename)"><Ic name="rename" :size="20" /> {{ t('common.rename') }}</button>
       <button class="flex w-full items-center gap-3 py-3 text-sm" @click="run((f) => lib.toggleFavorite(f.id))"><Ic name="star" :size="20" /> {{ file.favorite ? t('common.removeFavourite') : t('common.addFavourite') }}</button>
       <button class="flex w-full items-center gap-3 py-3 text-sm" @click="run(actions.share)"><Ic name="share" :size="20" /> {{ t('common.share') }}</button>

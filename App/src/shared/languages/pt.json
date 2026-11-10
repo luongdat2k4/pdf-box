@@ -114,6 +114,7 @@
   "file.type": "Tipo",
   "file.added": "Adicionado",
   "file.detail": "Detalhes do arquivo",
+  "file.convertToPdf": "Converter para PDF",
   "file.renameTitle": "Renomear arquivo",
   "file.deleteTitle": "Excluir arquivo?",
   "file.deleteMsg": "Mover \"{name}\" para a Lixeira? Você poderá restaurá-lo depois.",

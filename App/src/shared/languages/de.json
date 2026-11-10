@@ -114,6 +114,7 @@
   "file.type": "Typ",
   "file.added": "Hinzugefügt",
   "file.detail": "Dateidetails",
+  "file.convertToPdf": "In PDF umwandeln",
   "file.renameTitle": "Datei umbenennen",
   "file.deleteTitle": "Datei löschen?",
   "file.deleteMsg": "„{name}“ in den Papierkorb verschieben? Du kannst sie später wiederherstellen.",

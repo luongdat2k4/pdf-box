@@ -114,6 +114,7 @@
   "file.type": "유형",
   "file.added": "추가한 날짜",
   "file.detail": "파일 정보",
+  "file.convertToPdf": "PDF로 변환",
   "file.renameTitle": "파일 이름 바꾸기",
   "file.deleteTitle": "파일을 삭제할까요?",
   "file.deleteMsg": "“{name}” 파일을 휴지통으로 이동할까요? 나중에 복원할 수 있습니다.",

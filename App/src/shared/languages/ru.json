@@ -114,6 +114,7 @@
   "file.type": "Тип",
   "file.added": "Добавлен",
   "file.detail": "О файле",
+  "file.convertToPdf": "Преобразовать в PDF",
   "file.renameTitle": "Переименовать файл",
   "file.deleteTitle": "Удалить файл?",
   "file.deleteMsg": "Переместить «{name}» в корзину? Позже его можно восстановить.",

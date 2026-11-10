@@ -114,6 +114,7 @@
   "file.type": "Tür",
   "file.added": "Eklenme",
   "file.detail": "Dosya ayrıntıları",
+  "file.convertToPdf": "PDF'ye dönüştür",
   "file.renameTitle": "Dosyayı yeniden adlandır",
   "file.deleteTitle": "Dosya silinsin mi?",
   "file.deleteMsg": "\"{name}\" çöp kutusuna taşınsın mı? Daha sonra geri yükleyebilirsiniz.",

@@ -114,6 +114,7 @@
   "file.type": "Jenis",
   "file.added": "Ditambahkan",
   "file.detail": "Detail file",
+  "file.convertToPdf": "Konversi ke PDF",
   "file.renameTitle": "Ganti nama file",
   "file.deleteTitle": "Hapus file?",
   "file.deleteMsg": "Pindahkan \"{name}\" ke Sampah? Anda dapat memulihkannya nanti.",

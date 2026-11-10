@@ -114,6 +114,7 @@
   "file.type": "種類",
   "file.added": "追加日",
   "file.detail": "ファイルの詳細",
+  "file.convertToPdf": "PDFに変換",
   "file.renameTitle": "ファイル名の変更",
   "file.deleteTitle": "ファイルを削除しますか？",
   "file.deleteMsg": "「{name}」をゴミ箱に移動しますか？後で復元できます。",

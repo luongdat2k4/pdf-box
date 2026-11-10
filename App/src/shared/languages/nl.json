@@ -114,6 +114,7 @@
   "file.type": "Type",
   "file.added": "Toegevoegd",
   "file.detail": "Bestandsdetails",
+  "file.convertToPdf": "Converteren naar PDF",
   "file.renameTitle": "Bestand hernoemen",
   "file.deleteTitle": "Bestand verwijderen?",
   "file.deleteMsg": "\"{name}\" naar de prullenbak verplaatsen? Je kunt het later herstellen.",

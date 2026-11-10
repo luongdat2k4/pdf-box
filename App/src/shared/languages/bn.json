@@ -114,6 +114,7 @@
   "file.type": "ধরন",
   "file.added": "যোগ করা হয়েছে",
   "file.detail": "ফাইলের বিবরণ",
+  "file.convertToPdf": "PDF-এ রূপান্তর করুন",
   "file.renameTitle": "ফাইলের নাম বদলান",
   "file.deleteTitle": "ফাইল মুছবেন?",
   "file.deleteMsg": "\"{name}\" ট্র্যাশে সরাবেন? পরে ফিরিয়ে আনতে পারবেন।",

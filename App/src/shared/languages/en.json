@@ -114,6 +114,7 @@
   "file.type": "Type",
   "file.added": "Added",
   "file.detail": "File detail",
+  "file.convertToPdf": "Convert to PDF",
   "file.renameTitle": "Rename file",
   "file.deleteTitle": "Delete file?",
   "file.deleteMsg": "Move \"{name}\" to Trash? You can restore it later.",

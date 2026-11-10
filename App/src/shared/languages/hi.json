@@ -114,6 +114,7 @@
   "file.type": "प्रकार",
   "file.added": "जोड़ी गई",
   "file.detail": "फ़ाइल की जानकारी",
+  "file.convertToPdf": "PDF में बदलें",
   "file.renameTitle": "फ़ाइल का नाम बदलें",
   "file.deleteTitle": "फ़ाइल हटाएँ?",
   "file.deleteMsg": "\"{name}\" को ट्रैश में भेजें? आप इसे बाद में वापस ला सकते हैं।",
