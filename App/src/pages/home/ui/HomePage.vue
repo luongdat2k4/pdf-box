@@ -95,16 +95,16 @@ async function pick() {
 
 <template>
   <div class="flex h-full flex-col bg-white">
-    <header class="safe-top flex-none bg-header text-white">
+    <header class="safe-top flex-none border-b border-line bg-header text-ink-strong">
       <div class="flex h-14 items-center gap-2 px-4">
         <h1 class="flex-1 text-lg font-bold tracking-tight">PDF Toolbox</h1>
-        <button class="grid size-10 place-items-center rounded-full active:bg-white/15" :aria-label="t('home.trash')" @click="router.push('/trash')">
+        <button class="grid size-10 place-items-center rounded-full active:bg-ink/5" :aria-label="t('home.trash')" @click="router.push('/trash')">
           <Ic name="trash" />
         </button>
-        <button class="grid size-10 place-items-center rounded-full active:bg-white/15" :aria-label="t('home.settings')" @click="router.push('/settings')">
+        <button class="grid size-10 place-items-center rounded-full active:bg-ink/5" :aria-label="t('home.settings')" @click="router.push('/settings')">
           <Ic name="settings" />
         </button>
-        <button class="grid size-10 place-items-center rounded-full active:bg-white/15" :aria-label="t('home.searchFiles')" @click="router.push('/search')">
+        <button class="grid size-10 place-items-center rounded-full active:bg-ink/5" :aria-label="t('home.searchFiles')" @click="router.push('/search')">
           <Ic name="search" />
         </button>
       </div>
@@ -115,7 +115,7 @@ async function pick() {
           role="tab"
           :aria-selected="tab === tb.id"
           class="relative flex-1 pb-2.5 pt-1 text-center transition"
-          :class="tab === tb.id ? 'text-[18px] font-semibold text-white' : 'text-[14px] text-white/60'"
+          :class="tab === tb.id ? 'text-[18px] font-semibold text-ink-strong' : 'text-[14px] text-ink/45'"
           @click="go(tb.id, filter)"
         >
           {{ t(tb.label) }}

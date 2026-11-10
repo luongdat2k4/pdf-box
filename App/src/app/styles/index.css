@@ -3,15 +3,16 @@
 
 @theme {
   --font-sans: 'Inter Variable', system-ui, -apple-system, 'Segoe UI', sans-serif;
-  --color-primary: #2d75ed;
-  --color-primary-dark: #1753e1;
-  --color-surface: #f0f7ff;
-  --color-surface-strong: #d2e6ff;
-  --color-ink: #1d1d1d;
-  --color-ink-strong: #0d1019;
-  --color-line: #d8d8d8;
-  --color-danger: #ef3b3b;
-  --color-header: #111317;
+  /* Indigo palette shared with the ScanPDF app. */
+  --color-primary: #4f45d9;
+  --color-primary-dark: #3d36a9;
+  --color-surface: #efedfd;
+  --color-surface-strong: #dcd8fb;
+  --color-ink: #181818;
+  --color-ink-strong: #111111;
+  --color-line: #ececec;
+  --color-danger: #ff6158;
+  --color-header: #ffffff;
 }
 
 html,
