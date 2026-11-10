@@ -26,7 +26,7 @@ function create() {
 </script>
 
 <template>
-  <div class="flex h-full flex-col bg-white">
+  <div class="flex h-full flex-col bg-card">
     <ToolBar :title="t('img2pdf.title')" :subtitle="t('img2pdf.selected', { n: ids.length })" />
     <FileSelect v-model="ids" :files="lib.images" :accept="ACCEPT_IMAGE" multiple ordered :empty-text="t('img2pdf.noImages')" />
     <div class="flex-none border-t border-line/50 px-4 py-3">

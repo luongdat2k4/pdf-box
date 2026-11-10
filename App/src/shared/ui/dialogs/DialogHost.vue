@@ -41,7 +41,7 @@ function ok() {
 <template>
   <Teleport to="body">
     <div v-if="dialogState" class="fixed inset-0 z-50 grid place-items-center bg-black/50 p-6" @click.self="cancel">
-      <div class="w-full max-w-sm rounded-3xl bg-white p-5 shadow-xl" role="dialog" aria-modal="true">
+      <div class="w-full max-w-sm rounded-3xl bg-card p-5 shadow-xl" role="dialog" aria-modal="true">
         <h2 class="text-base font-semibold text-ink-strong">{{ dialogState.title }}</h2>
         <p v-if="dialogState.kind === 'confirm'" class="mt-2 text-sm text-ink/70">{{ dialogState.message }}</p>
         <p v-if="dialogState.kind === 'password' && dialogState.message" class="mt-2 text-sm text-ink/70">

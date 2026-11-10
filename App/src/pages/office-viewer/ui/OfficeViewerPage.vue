@@ -77,7 +77,7 @@ function onArticleClick(e: MouseEvent) {
 </script>
 
 <template>
-  <div class="flex h-full flex-col bg-white">
+  <div class="flex h-full flex-col bg-card">
     <ToolBar :title="file?.name ?? t('office.document')" :subtitle="file ? file.kind.toUpperCase() : undefined">
       <template v-if="file && file.kind !== 'image' && file.kind !== 'ppt'" #actions>
         <div v-if="file.kind === 'md'" class="mr-1 flex rounded-full bg-surface p-0.5 text-xs font-medium" role="tablist">
@@ -96,7 +96,7 @@ function onArticleClick(e: MouseEvent) {
         {{ error }}
       </div>
       <img v-else-if="imageUrl" :src="imageUrl" class="mx-auto max-w-full rounded-lg bg-white" alt="" />
-      <article v-else ref="article" class="office-body mx-auto min-h-full max-w-3xl rounded-xl bg-white p-4 shadow-sm" @click="onArticleClick" v-html="mode === 'source' ? sourceHtml : html" />
+      <article v-else ref="article" class="office-body mx-auto min-h-full max-w-3xl rounded-xl bg-card p-4 shadow-sm" @click="onArticleClick" v-html="mode === 'source' ? sourceHtml : html" />
     </main>
   </div>
 </template>

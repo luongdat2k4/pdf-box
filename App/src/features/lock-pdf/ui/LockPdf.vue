@@ -48,7 +48,7 @@ function go() {
 </script>
 
 <template>
-  <div class="flex h-full flex-col bg-white">
+  <div class="flex h-full flex-col bg-card">
     <ToolBar :title="t('lock.title')" :subtitle="t('lock.subtitle')" />
     <FileSelect v-model="ids" :files="lib.pdfs" :accept="ACCEPT_PDF" :empty-text="t('common.noPdf')" />
     <div v-if="ids.length && locked !== null" class="mx-4 mb-2 flex items-center gap-2 rounded-xl bg-surface px-3 py-2 text-sm text-ink/70">

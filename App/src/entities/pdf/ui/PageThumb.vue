@@ -46,7 +46,7 @@ onBeforeUnmount(() => {
     </div>
     <span class="mt-1 block text-xs text-ink/60">{{ pageNo }}</span>
     <span v-if="selectable" class="absolute top-2.5 right-2.5 grid size-5 place-items-center rounded-md border-2"
-      :class="selected ? 'border-primary bg-primary text-white' : 'border-line bg-white/90'">
+      :class="selected ? 'border-primary bg-primary text-white' : 'border-line bg-card/90'">
       <Ic v-if="selected" name="check" :size="14" />
     </span>
   </button>

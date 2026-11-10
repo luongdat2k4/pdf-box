@@ -84,12 +84,12 @@ onBeforeUnmount(() => { observer?.disconnect(); clearTimeout(progressTimer); sav
 </script>
 
 <template>
-  <section class="relative flex min-h-0 flex-1 flex-col bg-slate-100" @keydown="key">
-    <div class="flex min-h-12 flex-none items-center gap-2 border-b border-line bg-white px-2">
+  <section class="relative flex min-h-0 flex-1 flex-col bg-canvas" @keydown="key">
+    <div class="flex min-h-12 flex-none items-center gap-2 border-b border-line bg-card px-2">
       <button class="grid size-10 place-items-center rounded-lg text-ink/65 active:bg-surface" :aria-label="t('slides.list')" :aria-expanded="panel === 'slides'" @click="panel = 'slides'"><Ic name="thumbs" :size="20" /></button>
       <span class="flex-1 text-xs text-ink/60">{{ t('slides.position', { page: current + 1, total: session.count }) }}</span>
       <button class="grid size-10 place-items-center rounded-lg text-ink/65 disabled:opacity-30" :disabled="!slide" :aria-label="t('slides.text')" @click="panel = 'text'"><Ic name="doc" :size="20" /></button>
-      <select v-model.number="zoom" class="min-h-9 rounded-lg border border-line bg-white px-2 text-xs" :aria-label="t('slides.zoom')">
+      <select v-model.number="zoom" class="min-h-9 rounded-lg border border-line bg-card px-2 text-xs" :aria-label="t('slides.zoom')">
         <option v-for="value in zooms" :key="value" :value="value">{{ value === 1 ? t('slides.fit') : `${value * 100}%` }}</option>
       </select>
     </div>
@@ -105,14 +105,14 @@ onBeforeUnmount(() => { observer?.disconnect(); clearTimeout(progressTimer); sav
           class="pointer-events-none shrink-0 border-0 bg-white shadow-md" :style="{ width: `${slideWidth}px`, height: `${slideHeight}px` }" />
       </div>
     </div>
-    <footer class="safe-bottom flex min-h-14 flex-none items-center justify-between gap-3 border-t border-line bg-white px-4 py-2">
+    <footer class="safe-bottom flex min-h-14 flex-none items-center justify-between gap-3 border-t border-line bg-card px-4 py-2">
       <button class="flex min-h-10 items-center gap-1 rounded-lg px-2 text-sm text-primary disabled:opacity-30" :disabled="current === 0" @click="go(current - 1)"><Ic name="back" :size="18" />{{ t('slides.previous') }}</button>
       <label class="flex items-center gap-1 text-xs text-ink/50"><span class="sr-only">{{ t('slides.goTo') }}</span>
         <input v-model.number="pageInput" type="number" inputmode="numeric" min="1" :max="session.count" class="h-9 w-16 rounded-lg border border-line text-center text-sm text-ink" :aria-label="t('slides.goTo')" @change="go(Number(pageInput) - 1)" @keydown.enter="go(Number(pageInput) - 1)" /> / {{ session.count }}
       </label>
       <button class="flex min-h-10 items-center gap-1 rounded-lg px-2 text-sm text-primary disabled:opacity-30" :disabled="current === session.count - 1" @click="go(current + 1)">{{ t('slides.next') }}<Ic name="next" :size="18" /></button>
     </footer>
-    <div v-if="panel" class="absolute inset-0 z-30 flex flex-col bg-white">
+    <div v-if="panel" class="absolute inset-0 z-30 flex flex-col bg-card">
       <header class="flex min-h-14 flex-none items-center justify-between border-b border-line px-4">
         <h2 class="font-semibold">{{ t(panel === 'slides' ? 'slides.list' : 'slides.text') }}</h2>
         <button class="grid size-10 place-items-center rounded-full active:bg-surface" :aria-label="t('slides.close')" @click="panel = null"><Ic name="close" /></button>

@@ -2,6 +2,7 @@
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import type { NativeAdInitOptions, NativeAdRect } from '@alf/app-sdk'
 import { fullScreenShowing, getAds, overlaysOpen } from '@/shared/ads'
+import { nativeAdStyle } from '@/shared/lib/theme'
 
 let nextSlot = 0
 const props = withDefaults(defineProps<{
@@ -52,7 +53,7 @@ async function show() {
       rect: bounds,
       video: props.video,
       mediaAspectRatio: props.mediaAspectRatio,
-      style: props.adStyle,
+      style: props.adStyle ?? nativeAdStyle(), // follows the app theme unless a page sets its own
     })
     if (!active) await ads.DestroyAdMobNativeAd(slot)
     else if (shown) {

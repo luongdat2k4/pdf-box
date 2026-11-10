@@ -3,7 +3,7 @@ import { StatusBar, Style } from '@capacitor/status-bar'
 import type { Router } from 'vue-router'
 
 /** Local native plugin (android/.../WindowColorPlugin.java): colours the strip behind the status bar. */
-const WindowColor = registerPlugin<{ setStatusBarColor(o: { color: string }): Promise<void> }>('WindowColor')
+const WindowColor = registerPlugin<{ setStatusBarColor(o: { color: string; background?: string }): Promise<void> }>('WindowColor')
 
 type Rgb = [number, number, number]
 
@@ -24,20 +24,27 @@ function titleBarColor(): Rgb {
     if (h.offsetParent === null && getComputedStyle(h).position !== 'fixed') continue // hidden (e.g. reader with bars off)
     const c = parse(getComputedStyle(h).backgroundColor)
     if (c) return c
-    break // a header without its own background sits on the page: white
+    break // a header without its own background sits on the page
   }
-  return [255, 255, 255]
+  return pageColor()
+}
+
+/** The page background of the current theme (also shows behind the navigation bar). */
+function pageColor(): Rgb {
+  return parse(getComputedStyle(document.body).backgroundColor) ?? [255, 255, 255]
 }
 
 async function apply(): Promise<void> {
   const color = titleBarColor()
   try {
-    await WindowColor.setStatusBarColor({ color: hex(color) })
+    const page = pageColor()
+    await WindowColor.setStatusBarColor({ color: hex(color), background: hex(page) })
     // Dark bar -> white icons, light bar -> dark icons. SystemBars is what Capacitor 8 uses for edge-to-edge
     // and can override StatusBar, so set both to the same value.
     const light = isLight(color)
     await SystemBars.setStyle({ style: light ? SystemBarsStyle.Light : SystemBarsStyle.Dark, bar: SystemBarType.StatusBar })
     await StatusBar.setStyle({ style: light ? Style.Light : Style.Dark })
+    await SystemBars.setStyle({ style: isLight(page) ? SystemBarsStyle.Light : SystemBarsStyle.Dark, bar: SystemBarType.NavigationBar })
   } catch {
     // plugin missing or colour rejected: leave the bar as it is
   }
@@ -51,7 +58,7 @@ export function syncStatusBarWithRoutes(router: Router): void {
   if (!Capacitor.isNativePlatform()) return
   let last = ''
   const check = () => {
-    const key = hex(titleBarColor())
+    const key = hex(titleBarColor()) + hex(pageColor())
     if (key !== last) { last = key; void apply() }
   }
   router.afterEach(() => {
@@ -60,4 +67,7 @@ export function syncStatusBarWithRoutes(router: Router): void {
     setTimeout(() => obs.disconnect(), 1200)
     requestAnimationFrame(check)
   })
+  // A theme change recolours the bars without a navigation.
+  new MutationObserver(() => requestAnimationFrame(check))
+    .observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] })
 }

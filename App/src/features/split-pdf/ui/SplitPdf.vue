@@ -62,7 +62,7 @@ onBeforeUnmount(reset)
 </script>
 
 <template>
-  <div class="flex h-full flex-col bg-white">
+  <div class="flex h-full flex-col bg-card">
     <ToolBar :title="t('split.title')" :subtitle="doc ? t('split.subtitle', { name: file?.name ?? '', n: pageCount }) : t('split.choose')">
       <template v-if="doc" #actions>
         <button class="rounded-full px-3 py-1.5 text-sm font-medium text-primary active:bg-surface" @click="selected = selected.length === pageCount ? [] : Array.from({ length: pageCount }, (_, i) => i + 1)">

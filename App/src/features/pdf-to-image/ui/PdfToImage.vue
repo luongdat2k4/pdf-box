@@ -36,7 +36,7 @@ function convert() {
 </script>
 
 <template>
-  <div class="flex h-full flex-col bg-white">
+  <div class="flex h-full flex-col bg-card">
     <ToolBar :title="t('pdf2img.title')" :subtitle="t('pdf2img.subtitle')" />
     <FileSelect v-model="ids" :files="lib.pdfs" :accept="ACCEPT_PDF" :empty-text="t('common.noPdf')" />
     <div class="flex-none space-y-3 border-t border-line/50 px-4 py-3">

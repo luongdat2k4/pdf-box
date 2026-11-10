@@ -9,7 +9,7 @@ const back = () => (window.history.length > 1 ? router.back() : router.replace('
 </script>
 
 <template>
-  <header class="safe-top flex-none border-b border-line/60 bg-white">
+  <header class="safe-top flex-none border-b border-line/60 bg-card">
     <div class="flex h-14 items-center gap-1 px-2">
       <button class="grid size-10 place-items-center rounded-full active:bg-surface" :aria-label="t('common.back')" @click="back">
         <Ic name="back" />

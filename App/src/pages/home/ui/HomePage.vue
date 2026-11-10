@@ -121,7 +121,7 @@ async function pick() {
 </script>
 
 <template>
-  <div class="flex h-full flex-col bg-white">
+  <div class="flex h-full flex-col bg-card">
     <header class="safe-top flex-none border-b border-line bg-header text-ink-strong">
       <div class="flex h-14 items-center gap-2 px-4">
         <h1 class="flex-1 text-lg font-bold tracking-tight">PDF Toolbox</h1>
@@ -161,7 +161,7 @@ async function pick() {
       >
         <span
           class="grid size-12 place-items-center rounded-full transition"
-          :class="filter === c.id ? 'bg-primary/15 ring-2 ring-primary/40' : 'bg-white'"
+          :class="filter === c.id ? 'bg-primary/15 ring-2 ring-primary/40' : 'bg-card'"
         >
           <img :src="`${base}assets/icons/${c.icon}.webp`" :alt="''" class="size-8 object-contain" draggable="false" />
         </span>
@@ -170,7 +170,7 @@ async function pick() {
     </div>
 
     <div v-if="nativeSlot" class="flex-none bg-surface px-3 pb-2">
-      <div class="overflow-hidden rounded-2xl bg-white">
+      <div class="overflow-hidden rounded-2xl bg-card">
         <NativeAd slot="home_list" template="small" :height="96" />
       </div>
     </div>
@@ -180,7 +180,7 @@ async function pick() {
       <p class="min-w-0 flex-1 text-xs text-ink/65">
         {{ lib.libraryAccess.hasAccess ? t('home.indexing', { count: lib.syncState.processed }) : t('home.deviceAccessHint') }}
       </p>
-      <button v-if="!lib.libraryAccess.hasAccess" :disabled="lib.scanning" class="shrink-0 whitespace-nowrap rounded-full border border-primary/40 bg-white px-3.5 py-1.5 text-xs font-semibold text-primary shadow-sm shadow-primary/10 active:bg-primary/10 disabled:opacity-40" @click="syncFiles(true)">
+      <button v-if="!lib.libraryAccess.hasAccess" :disabled="lib.scanning" class="shrink-0 whitespace-nowrap rounded-full border border-primary/40 bg-card px-3.5 py-1.5 text-xs font-semibold text-primary shadow-sm shadow-primary/10 active:bg-primary/10 disabled:opacity-40" @click="syncFiles(true)">
         {{ t('home.grantDeviceAccess') }}
       </button>
     </div>
@@ -195,7 +195,7 @@ async function pick() {
       role="status"
       :aria-label="t('home.updating')"
     >
-      <span class="grid size-9 place-items-center rounded-full bg-white text-primary shadow-md shadow-primary/20 ring-1 ring-line">
+      <span class="grid size-9 place-items-center rounded-full bg-card text-primary shadow-md shadow-primary/20 ring-1 ring-line">
         <Ic
           name="loading"
           :size="20"
@@ -204,7 +204,7 @@ async function pick() {
         />
       </span>
     </div>
-    <VirtualList :items="list" :reset-key="`${tab}:${filter}`" :bottom-space="112" class="bg-white px-2" :aria-label="t('home.tab.home')">
+    <VirtualList :items="list" :reset-key="`${tab}:${filter}`" :bottom-space="112" class="bg-card px-2" :aria-label="t('home.tab.home')">
       <template #empty>
       <div class="grid h-full place-items-center px-10 text-center">
         <div>

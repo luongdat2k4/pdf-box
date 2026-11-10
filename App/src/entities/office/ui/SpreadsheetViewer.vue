@@ -132,12 +132,12 @@ onBeforeUnmount(() => { observer?.disconnect(); if (frame) cancelAnimationFrame(
 </script>
 
 <template>
-  <section class="flex min-h-0 flex-1 flex-col bg-white">
+  <section class="flex min-h-0 flex-1 flex-col bg-card">
     <div class="flex flex-none flex-wrap items-center gap-x-4 gap-y-1 border-b border-line bg-surface px-3 py-1.5 text-xs">
       <label class="flex min-h-9 items-center gap-1.5"><input v-model="freezeRow" type="checkbox" class="accent-emerald-600" />{{ t('sheet.freezeRow') }}</label>
       <label class="flex min-h-9 items-center gap-1.5"><input v-model="freezeColumn" type="checkbox" class="accent-emerald-600" />{{ t('sheet.freezeColumn') }}</label>
       <label class="ml-auto flex min-h-9 items-center gap-1"><span class="sr-only">{{ t('sheet.zoom') }}</span>
-        <select v-model.number="zoomPercent" class="rounded border border-line bg-white px-1 py-1.5" :aria-label="t('sheet.zoom')">
+        <select v-model.number="zoomPercent" class="rounded border border-line bg-card px-1 py-1.5" :aria-label="t('sheet.zoom')">
           <option v-for="value in [50, 75, 100, 125, 150, 200]" :key="value" :value="value">{{ value }}%</option>
         </select>
       </label>
@@ -183,7 +183,7 @@ onBeforeUnmount(() => { observer?.disconnect(); if (frame) cancelAnimationFrame(
       </div>
     </div>
     <p v-else class="flex-1 p-6 text-center text-sm text-ink/50">{{ t('sheet.noSheets') }}</p>
-    <footer class="safe-bottom flex-none border-t border-line bg-white">
+    <footer class="safe-bottom flex-none border-t border-line bg-card">
       <nav role="tablist" :aria-label="t('sheet.sheets')" class="flex gap-1 overflow-x-auto px-2 py-1">
         <button v-for="name in sheetNames" :key="name" role="tab" :aria-selected="active === name" class="min-h-11 max-w-56 flex-none truncate rounded-lg px-4 text-sm font-medium"
           :class="active === name ? 'bg-emerald-50 text-emerald-700' : 'text-ink/60'" @click="changeSheet(name)">{{ name }}</button>

@@ -27,7 +27,7 @@ async function remove() {
 </script>
 
 <template>
-  <div class="flex h-full flex-col bg-white">
+  <div class="flex h-full flex-col bg-card">
     <ToolBar :title="t('delete.title')" :subtitle="t('delete.selected', { n: ids.length })" />
     <FileSelect v-model="ids" :files="lib.all" :accept="ACCEPT_ALL" multiple :empty-text="t('delete.empty')" />
     <BottomAction :label="t('common.delete')" :busy="busy" :disabled="busy || !ids.length" @click="remove" />

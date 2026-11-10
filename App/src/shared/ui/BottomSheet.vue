@@ -19,7 +19,7 @@ const emit = defineEmits<{ close: [] }>()
       leave-to-class="opacity-0"
     >
       <div v-if="open" class="fixed inset-0 z-40 flex items-end bg-black/45" @click.self="emit('close')">
-        <div class="safe-bottom max-h-[88%] w-full overflow-y-auto rounded-t-3xl p-4 pb-6" :class="soft ? 'bg-surface' : 'bg-white'">
+        <div class="safe-bottom max-h-[88%] w-full overflow-y-auto rounded-t-3xl p-4 pb-6" :class="soft ? 'bg-surface' : 'bg-card'">
           <div v-if="soft" class="mb-1 flex justify-end">
             <button class="grid size-9 place-items-center rounded-full text-ink/70 active:bg-black/5" aria-label="Close" @click="emit('close')"><Ic name="close" :size="22" /></button>
           </div>

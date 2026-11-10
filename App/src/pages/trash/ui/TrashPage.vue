@@ -30,7 +30,7 @@ onMounted(load)
 </script>
 
 <template>
-  <div class="flex h-full flex-col bg-white">
+  <div class="flex h-full flex-col bg-card">
     <ToolBar :title="t('trash.title')" />
     <div v-if="!files.length" class="grid flex-1 place-items-center text-sm text-ink/55">{{ t('trash.empty') }}</div>
     <div v-else class="flex-1 overflow-y-auto px-4 py-2">

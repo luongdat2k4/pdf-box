@@ -38,12 +38,12 @@ onBeforeUnmount(() => {
 
 const icon = computed<{ name: IconName; cls: string }>(() => {
   switch (props.file.kind) {
-    case 'pdf': return { name: 'doc', cls: 'bg-red-50 text-red-500' }
-    case 'word': return { name: 'doc', cls: 'bg-blue-50 text-blue-600' }
-    case 'excel': return { name: 'excel', cls: 'bg-green-50 text-green-600' }
-    case 'ppt': return { name: 'ppt', cls: 'bg-orange-50 text-orange-500' }
-    case 'md': return { name: 'code', cls: 'bg-slate-100 text-slate-600' }
-    case 'image': return { name: 'fileImage', cls: 'bg-purple-50 text-purple-500' }
+    case 'pdf': return { name: 'doc', cls: 'bg-red-500/10 text-red-500' }
+    case 'word': return { name: 'doc', cls: 'bg-blue-500/10 text-blue-500' }
+    case 'excel': return { name: 'excel', cls: 'bg-green-500/10 text-green-600' }
+    case 'ppt': return { name: 'ppt', cls: 'bg-orange-500/10 text-orange-500' }
+    case 'md': return { name: 'code', cls: 'bg-slate-500/10 text-slate-500' }
+    case 'image': return { name: 'fileImage', cls: 'bg-purple-500/10 text-purple-500' }
     default: return { name: 'file', cls: 'bg-surface text-ink/60' }
   }
 })
@@ -59,7 +59,7 @@ const icon = computed<{ name: IconName; cls: string }>(() => {
     @keydown.enter="emit('click')"
   >
     <div v-if="selectable" class="grid size-5 flex-none place-items-center rounded-md border-2"
-      :class="selected ? 'border-primary bg-primary text-white' : 'border-line bg-white'">
+      :class="selected ? 'border-primary bg-primary text-white' : 'border-line bg-card'">
       <Ic v-if="selected" name="check" :size="14" />
     </div>
     <div class="grid size-11 flex-none place-items-center rounded-xl" :class="icon.cls">
@@ -74,11 +74,11 @@ const icon = computed<{ name: IconName; cls: string }>(() => {
       {{ order }}
     </span>
     <template v-if="actions">
-      <button class="grid size-9 place-items-center rounded-full active:bg-white" :aria-label="file.favorite ? t('file.unfavourite') : t('file.favourite')"
+      <button class="grid size-9 place-items-center rounded-full active:bg-card" :aria-label="file.favorite ? t('file.unfavourite') : t('file.favourite')"
         :class="file.favorite ? 'text-amber-400' : 'text-ink/30'" @click.stop="emit('star')">
         <Ic name="star" :size="20" />
       </button>
-      <button class="grid size-9 place-items-center rounded-full text-ink/60 active:bg-white" :aria-label="t('common.more')" @click.stop="emit('menu')">
+      <button class="grid size-9 place-items-center rounded-full text-ink/60 active:bg-card" :aria-label="t('common.more')" @click.stop="emit('menu')">
         <Ic name="more" :size="20" />
       </button>
     </template>

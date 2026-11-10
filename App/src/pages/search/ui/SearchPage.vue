@@ -24,7 +24,7 @@ onMounted(() => input.value?.focus())
 </script>
 
 <template>
-  <div class="flex h-full flex-col bg-white">
+  <div class="flex h-full flex-col bg-card">
     <header class="safe-top flex-none border-b border-line/60">
       <div class="flex h-14 items-center gap-1 px-2">
         <button class="grid size-10 place-items-center rounded-full active:bg-surface" :aria-label="t('common.back')" @click="router.back()"><Ic name="back" /></button>

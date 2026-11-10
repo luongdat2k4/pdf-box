@@ -106,7 +106,7 @@ const box = (s: Shape) => {
 </script>
 
 <template>
-  <div ref="root" class="relative mx-auto mb-3 bg-white shadow-sm" :style="{ width: `${width}px`, height: `${height}px` }" :data-page="pageNo">
+  <div ref="root" class="relative mx-auto mb-3 pdf-paper shadow-sm" :style="{ width: `${width}px`, height: `${height}px` }" :data-page="pageNo">
     <canvas ref="canvas" class="absolute inset-0" />
     <svg
       ref="svg"

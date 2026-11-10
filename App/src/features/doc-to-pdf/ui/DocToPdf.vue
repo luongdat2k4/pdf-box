@@ -32,13 +32,13 @@ function convert() {
 </script>
 
 <template>
-  <div class="flex h-full flex-col bg-white">
+  <div class="flex h-full flex-col bg-card">
     <ToolBar :title="t('doc2pdf.title')" :subtitle="t('doc2pdf.subtitle')" />
     <FileSelect v-model="ids" :files="files" :accept="accept" :empty-text="t('doc2pdf.empty')" />
     <p class="flex-none px-4 pb-1 text-center text-xs text-ink/50">{{ t('doc2pdf.note') }}</p>
     <BottomAction :label="busy ? progress || t('common.converting') : t('doc2pdf.action')" :busy="busy" :disabled="!ids.length" @click="convert" />
     <!-- off-screen render target for html2canvas -->
-    <div ref="stage" class="office-body pointer-events-none fixed top-0 -left-[10000px] w-[794px] bg-white p-12 text-black" v-html="html" />
+    <div ref="stage" class="office-body light-tokens pointer-events-none fixed top-0 -left-[10000px] w-[794px] bg-white p-12 text-black" v-html="html" />
     <ResultSheet :files="result" :title="t('pdf2img.success')" @close="result = []; ids = []" />
   </div>
 </template>

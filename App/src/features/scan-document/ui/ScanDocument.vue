@@ -95,7 +95,7 @@ onBeforeUnmount(() => shots.value.forEach((s) => URL.revokeObjectURL(s.url)))
 
 <template>
   <ScanCameraView v-if="cameraOpen" :count="shots.length" :thumbnail="shots[shots.length - 1]?.url" @shot="add" @close="cameraOpen = false" @gallery="cameraOpen = false; pickFromGallery()" />
-  <div v-else class="flex h-full flex-col bg-white">
+  <div v-else class="flex h-full flex-col bg-card">
     <ToolBar :title="t('scan.title')" :subtitle="tp('scan.pages', shots.length)" />
 
     <main class="min-h-0 flex-1 overflow-y-auto p-3">
@@ -110,9 +110,9 @@ onBeforeUnmount(() => shots.value.forEach((s) => URL.revokeObjectURL(s.url)))
           <img :src="s.url" class="aspect-[3/4] w-full rounded-lg bg-white object-contain" alt="" />
           <span class="absolute top-3 left-3 rounded-full bg-primary px-2 text-xs font-semibold text-white">{{ i + 1 }}</span>
           <div class="mt-1.5 flex items-center justify-between">
-            <button class="grid size-8 place-items-center rounded-full text-ink/60 disabled:opacity-25 active:bg-white" :disabled="i === 0" :aria-label="t('scan.moveEarlier')" @click="move(i, -1)"><Ic name="back" :size="18" /></button>
-            <button class="grid size-8 place-items-center rounded-full text-danger active:bg-white" :aria-label="t('scan.deletePage')" @click="remove(s.id)"><Ic name="trash" :size="18" /></button>
-            <button class="grid size-8 place-items-center rounded-full text-ink/60 disabled:opacity-25 active:bg-white" :disabled="i === shots.length - 1" :aria-label="t('scan.moveLater')" @click="move(i, 1)"><Ic name="next" :size="18" /></button>
+            <button class="grid size-8 place-items-center rounded-full text-ink/60 disabled:opacity-25 active:bg-card" :disabled="i === 0" :aria-label="t('scan.moveEarlier')" @click="move(i, -1)"><Ic name="back" :size="18" /></button>
+            <button class="grid size-8 place-items-center rounded-full text-danger active:bg-card" :aria-label="t('scan.deletePage')" @click="remove(s.id)"><Ic name="trash" :size="18" /></button>
+            <button class="grid size-8 place-items-center rounded-full text-ink/60 disabled:opacity-25 active:bg-card" :disabled="i === shots.length - 1" :aria-label="t('scan.moveLater')" @click="move(i, 1)"><Ic name="next" :size="18" /></button>
           </div>
         </div>
       </div>

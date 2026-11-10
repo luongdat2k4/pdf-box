@@ -145,9 +145,9 @@ function menuAction(fn: (f: NonNullable<typeof file.value>) => unknown) {
 </script>
 
 <template>
-  <div class="relative flex h-full flex-col bg-neutral-200">
+  <div class="relative flex h-full flex-col bg-canvas">
     <!-- top bar -->
-    <header v-show="showBars" class="safe-top z-20 flex-none bg-white shadow-sm">
+    <header v-show="showBars" class="safe-top z-20 flex-none bg-card shadow-sm">
       <div v-if="!search.isOpen.value" class="flex h-14 items-center gap-1 px-2">
         <button class="grid size-10 place-items-center rounded-full active:bg-surface" :aria-label="t('common.back')" @click="router.back()"><Ic name="back" /></button>
         <h1 class="min-w-0 flex-1 truncate text-[16px] font-semibold text-ink-strong">{{ file?.name ?? 'PDF' }}</h1>
@@ -203,7 +203,7 @@ function menuAction(fn: (f: NonNullable<typeof file.value>) => unknown) {
     </div>
 
     <!-- bottom bar: zoom + thumbnails (read mode) / annotate tools (edit mode) -->
-    <footer v-if="doc && showBars" class="safe-bottom z-20 flex-none bg-white shadow-[0_-1px_6px_rgba(0,0,0,.08)]">
+    <footer v-if="doc && showBars" class="safe-bottom z-20 flex-none bg-card shadow-[0_-1px_6px_rgba(0,0,0,.08)]">
       <AnnotateBar
         v-if="mark.editing.value"
         v-model:tool="mark.tool.value"
@@ -230,7 +230,7 @@ function menuAction(fn: (f: NonNullable<typeof file.value>) => unknown) {
     <!-- thumbnail drawer -->
     <Teleport to="body">
       <div v-if="thumbsOpen && doc" class="fixed inset-0 z-40 flex bg-black/45" @click.self="thumbsOpen = false">
-        <aside class="safe-top h-full w-[72%] max-w-xs overflow-y-auto bg-white p-3">
+        <aside class="safe-top h-full w-[72%] max-w-xs overflow-y-auto bg-card p-3">
           <h2 class="mb-2 px-1 text-base font-semibold text-ink-strong">{{ t('reader.pages') }}</h2>
           <div class="grid grid-cols-2 gap-2">
             <PageThumb v-for="n in pageCount" :key="n" :doc="doc" :page-no="n" :current="n === current" @click="goTo(n); thumbsOpen = false" />

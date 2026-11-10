@@ -47,7 +47,7 @@ onBeforeRouteLeave(async () => {
 </script>
 
 <template>
-  <div class="flex h-full flex-col bg-white">
+  <div class="flex h-full flex-col bg-card">
     <ToolBar :title="t('merge.title')" :subtitle="step === 'select' ? t('merge.selectTwo') : t('merge.reorder', { n: files.length })" />
 
     <template v-if="step === 'select'">

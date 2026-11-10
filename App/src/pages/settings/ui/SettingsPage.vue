@@ -2,6 +2,7 @@
 import { ToolBar, toast } from '@/shared/ui'
 import { t } from '@/shared/i18n'
 import { LanguagePicker } from '@/features/language'
+import { ThemePicker } from '@/features/theme'
 import { SaveLocation } from '@/features/save-location'
 import { useLibrary } from '@/entities/file'
 import { isNative } from '@/shared/lib/platform'
@@ -16,10 +17,11 @@ async function rescan() {
 </script>
 
 <template>
-  <div class="flex h-full flex-col bg-white">
+  <div class="flex h-full flex-col bg-card">
     <ToolBar :title="t('settings.title')" />
     <div class="min-h-0 flex-1 space-y-6 overflow-y-auto px-4 py-4">
       <LanguagePicker />
+      <ThemePicker />
       <SaveLocation />
       <section v-if="device" class="space-y-3">
         <h2 class="text-sm font-semibold text-ink">{{ t('settings.library') }}</h2>

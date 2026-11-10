@@ -62,21 +62,21 @@ function enter() {
 </template>
 
 <style scoped>
-.begin { height: 100%; overflow: hidden; display: flex; flex-direction: column; align-items: center; padding: max(48px, calc(env(safe-area-inset-top) + 32px)) 24px max(28px, calc(env(safe-area-inset-bottom) + 20px)); background: radial-gradient(ellipse 90% 45% at 50% 0%, #dcd8fb 0, transparent 70%), linear-gradient(180deg, #efedfd 0%, #f8f7ff 50%, #ffffff 100%); color: #181818; text-align: center; }
+.begin { height: 100%; overflow: hidden; display: flex; flex-direction: column; align-items: center; padding: max(48px, calc(env(safe-area-inset-top) + 32px)) 24px max(28px, calc(env(safe-area-inset-bottom) + 20px)); background: radial-gradient(ellipse 90% 45% at 50% 0%, var(--color-surface-strong) 0, transparent 70%), linear-gradient(180deg, var(--color-surface) 0%, color-mix(in oklab, var(--color-surface) 40%, var(--color-card)) 50%, var(--color-card) 100%); color: var(--color-ink); text-align: center; }
 /* The app's banner strip already covers the bottom safe area; keep Continue 48px+ clear of the banner. */
 .begin.banner { padding-bottom: 48px; }
 .hero { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 0; }
 .logo { position: relative; width: 116px; height: 116px; }
-.glow { position: absolute; inset: -28px; border-radius: 50%; background: radial-gradient(circle, #4f45d926 0, transparent 70%); z-index: -1; }
+.glow { position: absolute; inset: -28px; border-radius: 50%; background: radial-gradient(circle, color-mix(in oklab, var(--color-primary) 15%, transparent) 0, transparent 70%); z-index: -1; }
 /* The PNG has black corners outside its rounded square, so the rounding here clips them off. */
 .logo img { display: block; width: 100%; height: 100%; border-radius: 26%; box-shadow: 0 18px 40px #1a4fd040; }
 h1 { margin: 26px 0 0; font-size: 30px; line-height: 1.15; letter-spacing: -.8px; font-weight: 700; }
-p { margin: 10px 0 0; max-width: 300px; font-size: 14px; line-height: 1.55; color: #777; }
-.native-slot { flex: none; width: min(100%, 360px); margin-top: 16px; border-radius: 16px; overflow: hidden; background: #efedfd; }
-.enter { width: min(100%, 360px); min-height: 54px; margin-top: 48px; border: 0; border-radius: 30px; background: #4f45d9; color: #fff; font: inherit; font-weight: 600; font-size: 15px; cursor: pointer; box-shadow: 0 10px 24px #4f45d940; transition: opacity .3s, transform .2s; }
+p { margin: 10px 0 0; max-width: 300px; font-size: 14px; line-height: 1.55; color: color-mix(in oklab, var(--color-ink) 55%, transparent); }
+.native-slot { flex: none; width: min(100%, 360px); margin-top: 16px; border-radius: 16px; overflow: hidden; background: var(--color-surface); }
+.enter { width: min(100%, 360px); min-height: 54px; margin-top: 48px; border: 0; border-radius: 30px; background: var(--color-primary); color: #fff; font: inherit; font-weight: 600; font-size: 15px; cursor: pointer; box-shadow: 0 10px 24px color-mix(in oklab, var(--color-primary) 25%, transparent); transition: opacity .3s, transform .2s; }
 .enter:disabled { opacity: .5; cursor: default; box-shadow: none; }
 .enter:active:enabled { transform: scale(.98); }
 .count { font-variant-numeric: tabular-nums; font-size: 17px; }
-button:focus-visible { outline: 3px solid #4f45d9; outline-offset: 4px; }
+button:focus-visible { outline: 3px solid var(--color-primary); outline-offset: 4px; }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition: none !important; } }
 </style>

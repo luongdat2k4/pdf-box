@@ -76,7 +76,7 @@ onBeforeUnmount(() => {
     <div
       v-if="bannerStrip"
       data-ad-strip
-      class="flex-none border-t border-line bg-white"
+      class="flex-none border-t border-line bg-card"
       :style="{ height: `calc(${BANNER_HEIGHT}px + env(safe-area-inset-bottom, 0px))` }"
       aria-hidden="true"
     />
