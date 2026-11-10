@@ -4,7 +4,7 @@ import { onBeforeUnmount, ref } from 'vue'
 import ScanCameraView from './ScanCameraView.vue'
 import { ToolBar, BottomAction, Ic } from '@/shared/ui'
 import { ResultSheet, savePdf, useRunner } from '@/entities/file'
-import { imagesToPdf, normalizeImage, type RasterImage, PAGE_SIZES, type PageSizeKey, canvasToBlob } from '@/entities/pdf'
+import { imagesToPdf, type RasterImage, PAGE_SIZES, type PageSizeKey, canvasToBlob } from '@/entities/pdf'
 import { timestamp } from '@/shared/lib/format'
 import { expectExternal } from '@/shared/ads'
 
@@ -14,7 +14,6 @@ const { busy, progress, result, run } = useRunner()
 const shots = ref<Shot[]>([])
 const size = ref<PageSizeKey>('A4')
 const sizes = Object.keys(PAGE_SIZES) as PageSizeKey[]
-const mode = ref<'color' | 'document'>('document')
 const cameraOpen = ref(true)
 const galleryInput = ref<HTMLInputElement | null>(null)
 // The gallery picker leaves the app; coming back from it shows no app-open ad.
@@ -53,37 +52,30 @@ function move(i: number, d: -1 | 1) {
   shots.value = next
 }
 
-/** "Document" look: grayscale + contrast stretch so paper turns white and ink turns dark. */
-async function enhance(blob: Blob): Promise<RasterImage> {
-  const bmp = await createImageBitmap(blob)
+/**
+ * One scanned page, in colour and upright. Camera JPEGs keep the sensor's landscape pixels plus an EXIF
+ * rotation that pdf-lib ignores, so the photo is redrawn with that rotation applied; a page that is still
+ * wider than tall is then turned a quarter clockwise, so every page comes out portrait.
+ */
+async function toPortrait(blob: Blob): Promise<RasterImage> {
+  const bmp = await createImageBitmap(blob, { imageOrientation: 'from-image' })
   const maxSide = 2200
   const k = Math.min(1, maxSide / Math.max(bmp.width, bmp.height))
+  const w = Math.round(bmp.width * k)
+  const h = Math.round(bmp.height * k)
+  const turn = w > h
   const c = document.createElement('canvas')
-  c.width = Math.round(bmp.width * k)
-  c.height = Math.round(bmp.height * k)
-  const ctx = c.getContext('2d', { willReadFrequently: true })!
-  ctx.drawImage(bmp, 0, 0, c.width, c.height)
+  c.width = turn ? h : w
+  c.height = turn ? w : h
+  const ctx = c.getContext('2d')!
+  ctx.fillStyle = '#fff'
+  ctx.fillRect(0, 0, c.width, c.height)
+  if (turn) {
+    ctx.translate(c.width, 0)
+    ctx.rotate(Math.PI / 2)
+  }
+  ctx.drawImage(bmp, 0, 0, w, h)
   bmp.close()
-  const img = ctx.getImageData(0, 0, c.width, c.height)
-  const d = img.data
-  const hist = new Uint32Array(256)
-  for (let i = 0; i < d.length; i += 4) {
-    const g = (d[i]! * 299 + d[i + 1]! * 587 + d[i + 2]! * 114) / 1000
-    d[i] = d[i + 1] = d[i + 2] = g
-    hist[g | 0]!++
-  }
-  // Clip 1% of the darkest / brightest pixels, then stretch.
-  const total = c.width * c.height
-  let lo = 0, hi = 255, acc = 0
-  for (let v = 0; v < 256; v++) { acc += hist[v]!; if (acc > total * 0.01) { lo = v; break } }
-  acc = 0
-  for (let v = 255; v >= 0; v--) { acc += hist[v]!; if (acc > total * 0.08) { hi = v; break } }
-  const span = Math.max(1, hi - lo)
-  for (let i = 0; i < d.length; i += 4) {
-    const v = Math.max(0, Math.min(255, ((d[i]! - lo) / span) * 255))
-    d[i] = d[i + 1] = d[i + 2] = v
-  }
-  ctx.putImageData(img, 0, 0)
   return { bytes: new Uint8Array(await (await canvasToBlob(c, 'image/jpeg', 0.9)).arrayBuffer()), kind: 'jpg' }
 }
 
@@ -92,7 +84,7 @@ function create() {
     const images: RasterImage[] = []
     for (const [i, s] of shots.value.entries()) {
       progress.value = t('scan.page', { i: i + 1, n: shots.value.length })
-      images.push(mode.value === 'document' ? await enhance(s.blob) : await normalizeImage(s.blob))
+      images.push(await toPortrait(s.blob))
     }
     return [await savePdf(`scan_${timestamp()}`, await imagesToPdf(images, size.value))]
   })
@@ -132,9 +124,7 @@ onBeforeUnmount(() => shots.value.forEach((s) => URL.revokeObjectURL(s.url)))
         <button class="flex h-11 flex-1 items-center justify-center gap-2 rounded-2xl bg-surface text-sm font-semibold text-primary active:opacity-80" @click="pickFromGallery()"><Ic name="image" :size="20" /> {{ t('scan.gallery') }}</button>
       </div>
       <div class="flex items-center gap-2">
-        <button class="rounded-full px-3.5 py-1.5 text-sm font-medium" :class="mode === 'document' ? 'bg-primary text-white' : 'bg-surface text-ink/70'" @click="mode = 'document'">{{ t('scan.document') }}</button>
-        <button class="rounded-full px-3.5 py-1.5 text-sm font-medium" :class="mode === 'color' ? 'bg-primary text-white' : 'bg-surface text-ink/70'" @click="mode = 'color'">{{ t('scan.colour') }}</button>
-        <span class="flex-1" />
+        <p class="flex-1 text-xs font-medium text-ink/55">{{ t('img2pdf.pageSize') }}</p>
         <button v-for="s in sizes.slice(0, 3)" :key="s" class="rounded-full px-3 py-1.5 text-sm font-medium" :class="size === s ? 'bg-primary text-white' : 'bg-surface text-ink/70'" @click="size = s">{{ s }}</button>
       </div>
     </div>

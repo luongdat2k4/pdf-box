@@ -132,7 +132,6 @@ onBeforeUnmount(() => {
     <header class="flex flex-none items-center gap-3 px-4 py-4">
       <button class="grid size-11 place-items-center rounded-full bg-white/10" :aria-label="t('scan.review')" @click="emit('close')"><Ic name="back" /></button>
       <div class="flex-1"><h1 class="font-semibold">{{ t('scan.title') }}</h1><p class="text-xs text-white/60">{{ tp('scan.pages', count) }}</p></div>
-      <Ic name="scan" :size="25" class="text-white/70" />
     </header>
     <div class="relative mx-4 min-h-0 flex-1 overflow-hidden rounded-2xl border border-white/30 bg-black">
       <div ref="viewport" class="absolute inset-0">
