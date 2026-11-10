@@ -25,12 +25,13 @@ async function syncFiles(requestAccess = false) {
   try { await lib.syncDeviceFiles(requestAccess) }
   catch (err) { toast(errorMessage(err), true) }
 }
-const filter = computed<'all' | FileKind>(() => {
+// One type is always selected; PDF when the URL names none.
+const filter = computed<FileKind>(() => {
   const t = String(route.query.type ?? '')
-  return chips.some((c) => c.id === t && t !== 'all') ? (t as FileKind) : 'all'
+  return chips.some((c) => c.id === t) ? (t as FileKind) : 'pdf'
 })
-function go(t: Tab, type: 'all' | FileKind) {
-  void router.replace({ name: t, query: type === 'all' ? {} : { type } })
+function go(t: Tab, type: FileKind) {
+  void router.replace({ name: t, query: type === 'pdf' ? {} : { type } })
 }
 const toolsOpen = ref(false)
 const menuFile = ref<FileMeta | null>(null)
@@ -46,36 +47,34 @@ const tabs: { id: Tab; label: MessageKey }[] = [
 ]
 const base = import.meta.env.BASE_URL
 // `icon` = file name in public/assets/icons/<icon>.webp
-const chips: { id: 'all' | FileKind; label: string; icon: string }[] = [
-  { id: 'all', label: 'All', icon: 'all' }, { id: 'pdf', label: 'PDF', icon: 'pdf' }, { id: 'word', label: 'Word', icon: 'word' },
+const chips: { id: FileKind; label: string; icon: string }[] = [
+  { id: 'pdf', label: 'PDF', icon: 'pdf' }, { id: 'word', label: 'Word', icon: 'word' },
   { id: 'excel', label: 'Excel', icon: 'excel' }, { id: 'ppt', label: 'PPT', icon: 'ppt' }, { id: 'txt', label: 'TXT', icon: 'txt' },
   { id: 'md', label: 'MD', icon: 'md' }, { id: 'image', label: 'Images', icon: 'image' },
 ]
 
-function chipLabel(c: { id: 'all' | FileKind; label: string }): string {
-  return c.id === 'all' ? t('home.chip.all') : c.id === 'image' ? t('home.chip.images') : c.label
+function chipLabel(c: { id: FileKind; label: string }): string {
+  return c.id === 'image' ? t('home.chip.images') : c.label
 }
 
-function selectChip(id: 'all' | FileKind, e: MouseEvent) {
+function selectChip(id: FileKind, e: MouseEvent) {
   go(tab.value, id)
   // Keep the chosen chip visible when it sits at the edge of the scroller.
   ;(e.currentTarget as HTMLElement).scrollIntoView({ inline: 'center', block: 'nearest', behavior: 'smooth' })
 }
 
 const list = computed(() => {
-  if (tab.value === 'home') return filter.value === 'all' ? lib.all : lib.byKind[filter.value]
+  if (tab.value === 'home') return lib.byKind[filter.value]
   const src = tab.value === 'history' ? lib.recent : lib.favorites
-  return filter.value === 'all' ? src : src.filter((f) => f.kind === filter.value)
+  return src.filter((f) => f.kind === filter.value)
 })
 
 const emptyText = computed(() => {
-  if (filter.value !== 'all') {
-    const chip = chips.find((c) => c.id === filter.value)
-    return t('home.nothingIn', { type: chip ? chipLabel(chip) : '' })
-  }
-  return tab.value === 'history' ? t('home.emptyHistory')
-    : tab.value === 'favorites' ? t('home.emptyFavorites')
-    : t('home.emptyLibrary')
+  if (tab.value === 'home' && !lib.items.length) return t('home.emptyLibrary')
+  if (tab.value === 'history' && !lib.recent.length) return t('home.emptyHistory')
+  if (tab.value === 'favorites' && !lib.favorites.length) return t('home.emptyFavorites')
+  const chip = chips.find((c) => c.id === filter.value)
+  return t('home.nothingIn', { type: chip ? chipLabel(chip) : '' })
 })
 
 async function open(f: FileMeta) {
@@ -163,7 +162,7 @@ async function pick() {
         <div>
           <Ic name="files" :size="56" class="mx-auto text-surface-strong" />
           <p class="mt-3 text-sm text-ink/55">{{ emptyText }}</p>
-          <button v-if="tab === 'home' && !lib.items.length && filter === 'all'" class="mt-4 rounded-full bg-primary px-6 py-2.5 text-sm font-semibold text-white" @click="pick()">
+          <button v-if="tab === 'home' && !lib.items.length" class="mt-4 rounded-full bg-primary px-6 py-2.5 text-sm font-semibold text-white" @click="pick()">
             {{ t('home.importFiles') }}
           </button>
         </div>
