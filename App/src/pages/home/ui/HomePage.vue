@@ -148,10 +148,10 @@ async function pick() {
       <p class="min-w-0 flex-1 text-xs text-ink/65">
         {{ lib.scanning ? t('home.indexing', { count: lib.syncState.processed }) : t(lib.updating ? 'home.updating' : lib.syncState.phase === 'error' ? 'home.syncFailed' : lib.libraryAccess.hasAccess ? 'home.deviceConnected' : 'home.deviceAccessHint') }}
       </p>
-      <button v-if="lib.libraryAccess.hasAccess" :disabled="lib.scanning || lib.updating" class="text-xs font-semibold text-primary disabled:opacity-40" @click="syncFiles()">
+      <button v-if="lib.libraryAccess.hasAccess" :disabled="lib.scanning || lib.updating" class="shrink-0 whitespace-nowrap rounded-full border border-primary/40 bg-white px-3.5 py-1.5 text-xs font-semibold text-primary shadow-sm shadow-primary/10 active:bg-primary/10 disabled:opacity-40" @click="syncFiles()">
         {{ t('home.refreshFiles') }}
       </button>
-      <button v-if="!lib.libraryAccess.hasAccess" :disabled="lib.scanning" class="text-xs font-semibold text-primary disabled:opacity-40" @click="syncFiles(true)">
+      <button v-if="!lib.libraryAccess.hasAccess" :disabled="lib.scanning" class="shrink-0 whitespace-nowrap rounded-full border border-primary/40 bg-white px-3.5 py-1.5 text-xs font-semibold text-primary shadow-sm shadow-primary/10 active:bg-primary/10 disabled:opacity-40" @click="syncFiles(true)">
         {{ t('home.grantDeviceAccess') }}
       </button>
     </div>
