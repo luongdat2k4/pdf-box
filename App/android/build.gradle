@@ -27,6 +27,14 @@ allprojects {
     repositories {
         google()
         mavenCentral()
+        // Ad mediation networks pulled in by @alf/app-sdk (AppLovin MAX adapters) publish their SDKs on their own
+        // Maven servers. A library's own `repositories` block does not apply to the app's dependency resolution, so
+        // they have to be declared here.
+        maven { url 'https://maven.applovin.com' }
+        maven { url 'https://artifactory.bidmachine.io/bidmachine' }
+        maven { url 'https://dl-maven-android.mintegral.com/repository/mbridge_android_sdk_oversea' }
+        maven { url 'https://artifact.bytedance.com/repository/pangle' }
+        maven { url 'https://android-sdk.is.com/' }
     }
 }
 
